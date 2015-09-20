@@ -10,7 +10,7 @@ from cvxopt import matrix
 from helpers import *
 
 class Qpecgen200(QpecgenProblem):
-    def __init__(self, param):    
+    def __init__(self, param):
         # QpecgenProblem has param, type, n, m, P, A, M, N
         # Qpecgen200 additionally needs a, u, b, E, q, c, d
         # with helper data given by: xgen, ygen, l_nonactive, ulambda, lambd, sigma, pi, eta,
@@ -20,90 +20,73 @@ class Qpecgen200(QpecgenProblem):
         ###### Generate xgen
         self.make_info()
         self.make_xgen()
-        self.u = zeros(self.param['m']-self.info['m_inf']) # just initializing
+        self.u = None # just initializing
         self.make_ygen()
         self.make_a_ulambda()
         self.make_F_pi_sigma_index()
         self.make_c_d()
-        
     
     def make_info(self):
         m = self.param['m']
         second_deg = self.param['second_deg']
         
-        ## Note that we only consider the following two cases of box constraints:
-        ## y(i) in [0, +inf) or  [0, u] where u is a nonnegative scalar.
-        ## Clearly, any other interval can be obtained by using the mapping
-        ## y <--- c1+c2*y. 
-        ## It is assumed that the last m_inf constraints are of the form [0, inf)
-        # The remaining m_inf - m_inf_deg - inf_nonactive constraints are where F=0, y>0
+        # Divide the lower level variables into groups according to constraints
+        # and the role they will have at the generated solution:
+        info = {}
+        #### single bounded y variables (only bounded below):
+        # decide total number
+        info['ms'] = min(m-1, choose_num(m))
+        # of these, how many will be degenerate at generated solution (F=0, y=0)
+        proposed_single_deg = choose_num(min(info['ms'], second_deg))
+        info['ms_deg'] = max(proposed_single_deg, second_deg-m+info['ms'])
+        info['ms_nonactive'] = choose_num(info['ms']-info['ms_deg']) #F>0, y=0
+        info['ms_active'] = info['ms'] - info['ms_deg'] - info['ms_nonactive'] #F=0, y>0
         
-        ## y variables which are only bounded below
-        m_inf = min(m-1, ceil(m*randcst()))     # how many y vars are bounded below only
-        m_inf_deg = max(second_deg-m+m_inf, ceil(min(m_inf, second_deg)*randcst()))  # how many degenerate: F=0, y=0
-        inf_nonactive = ceil((m_inf-m_inf_deg)*randcst())                            # how many not active: F>0, y=0
-        # The remaining m_inf - m_inf_deg - inf_nonactive constraints are where F=0, y>0
+        info['md'] = m - info['ms']
+        # divvy up degeneracy numbers so there are second_deg degenerate y vars
+        info['md_upp_deg'] = choose_num(second_deg-info['ms_deg']) #F=0, y=u
+        info['md_low_deg'] = second_deg-info['ms_deg']-info['md_upp_deg'] #F=0, y=0
         
-        ## y variables which are bounded below and above
-        ## There will be m - m_inf variables with double sided bounds. each upper bound is chosen uniform in [0,10]
-        m_upp_deg = ceil((second_deg-m_inf_deg)*randcst())                           # degenerate with y at upper bound: F=0, y=u
-        m_low_deg = second_deg-m_inf_deg-m_upp_deg                                   # degenerate with y at lower bound: F=0, y=0
-        upp_nonactive = ceil((m-m_inf-m_upp_deg-m_low_deg)*randcst())                # F not active, y at upper bound: F<0, y=u
-        low_nonactive = ceil((m-m_inf-m_upp_deg-m_low_deg-upp_nonactive)*randcst())  # F not active, y at lower bound: F>0, y=0
+        #### double bounded y variables (bounded below and above):
+        md_nondegen = info['md'] - info['md_upp_deg'] - info['md_low_deg']
+        info['md_upp_nonactive'] = choose_num(md_nondegen) #F<0, y=u
+        info['md_low_nonactive'] = choose_num(md_nondegen - info['md_upp_nonactive']) #F>0, y=0
+        info['md_float'] = md_unassigned - info['md_upp_nonactive'] - info['md_low_nonactive']# F=0, 0<y<u
         
-        self.info = { 'm_inf': m_inf,
-                      'm_inf_deg': m_inf_deg,
-                      'inf_nonactive': inf_nonactive,
-                      'm_upp_deg': m_upp_deg,
-                      'm_low_deg': m_low_deg,
-                      'upp_nonactive': upp_nonactive,
-                      'low_nonactive': low_nonactive,
-                      # Randomly decide how many of the non-degenerate first level ctrs should be nonactive
-                      'l_nonactive': ceil((self.param['l']-self.param['first_deg'])*randcst())}
+        # Randomly decide how many of the non-degenerate first level ctrs should be nonactive
+        self.info['l'] = self.param['l']
+        self.info['l_deg'] = self.param['first_deg']
+        self.info['l_nonactive'] = choose_num(self.info['l']-self.info['l_deg'])
+        self.info['l_active'] = self.info['l'] - self.info['l_deg'] - self.info['l_nonactive']
     
     def make_xgen(self):
         self.info['xgen'] = rand(n) - rand(n)
     
     def make_u(self):
-        self.u = 10.*rand(self.info['m']-self.info['m_inf'])
+        self.u = 10.*rand(self.info['md'])
     
     def make_ygen(self):
-        ###### y variables with an upper bound
-        ## There will be m - m_inf variables with double sided bounds. each upper bound is chosen uniform in [0,10]
-        
-        m = self.param['m']
-        m_inf = self.info['m_inf']
-        m_inf_deg = self.info['m_inf_deg']
-        inf_nonactive = self.info['inf_nonactive']
-        m_upp_deg = self.info['m_upp_deg']
-        upp_nonactive = self.info['upp_nonactive']
-        m_low_deg = self.info['m_low_deg']
-        low_nonactive = self.info['low_nonactive']
-        
-        self.u = 10.*rand(m-m_inf)
-        v1 = self.u[m_upp_deg+upp_nonactive+m_low_deg+low_nonactive:m-m_inf]
-        v2 = npvec([randcst()*v1[i] for i in range(len(v1))])
-        self.info['ygen'] = conmat([npvec(self.u[:m_upp_deg+upp_nonactive]),             # m_upp_deg (F=0, y=u) and upp_nonactive (F<0, y=u) cases
-                                    zeros(m_low_deg+low_nonactive),          # m_low_deg (F=0, y=0) and low_nonactive (F>0, y=0) cases
-                                    v2,                                        # for variables with double sided bounds, which do not fall in the above cases, ie. F=0, 0<y<u
-                                    zeros(m_inf_deg+inf_nonactive),          # m_inf_deg (F=0, y=0) and  inf_nonactive (F>0, y=0) cases
-                                    rand(m_inf-m_inf_deg-inf_nonactive)])    # m_inf-m_inf_deg-inf_nonactive (F=0, y>0)
-        
+        self.make_u()
+        self.info['ygen'] = conmat([npvec(self.u[:self.info['md_upp_deg'] + self.info['md_upp_nonactive']]), # y=u cases
+                                    zeros(self.info['md_low_deg'] + self.info['md_low_nonactive']), # y=0 cases
+                                    npvec([randcst()*x for x in self.u[self.info['md'] - self.info['md_float']:]]), # 0<y<u cases
+                                    zeros(self.info['ms_deg'] + self.info['ms_nonactive']), # y=0 cases
+                                    rand(self.info['ms_active'])]) # y>0 cases
+    
     def make_a_ulambda(self):
-        l = self.param['l']
-        first_deg = self.param['first_deg']
-        l_nonactive = self.info['l_nonactive']
         xgen = self.info['xgen']
         ygen = self.info['ygen']
         
         ####### FIRST LEVEL CTRS A[x;y] + a <= 0
         # Generate the first level multipliers  ulambda  associated with A*[x;y]+a<=0.
         # Generate a so that the constraints Ax+a <= 0 are loose or tight where appropriate.
-        self.a = -self.A*conmat([xgen, ygen]) - conmat([zeros(first_deg), # A + a = 0
-                                rand(l_nonactive),                        # A + a = 0
-                                zeros(l-first_deg-l_nonactive)])          # A + a <=0
+        self.a = -self.A*conmat([xgen, ygen]) - conmat([zeros(self.info['l_deg']), # A + a = 0
+                                                        rand(self.info['l_nonactive']), # A + a = 0
+                                                        zeros(self.info['l_active'])]) # A + a <=0
         
-        self.info['ulambda'] = conmat([zeros(first_deg+l_nonactive), rand(l-first_deg-l_nonactive)])
+        self.info['ulambda'] = conmat([zeros(self.info['l_deg']),
+                                       zeros(self.info['l_nonactive']),
+                                       rand(self.info['l_active'])])
     
     def make_F_pi_sigma_index(self):
         N = self.N
@@ -113,33 +96,25 @@ class Qpecgen200(QpecgenProblem):
         ygen = self.info['ygen']
         
         m = self.param['m']
-        m_inf = self.info['m_inf']
-        m_inf_deg = self.info['m_inf_deg']
-        inf_nonactive = self.info['inf_nonactive']
-        
-        m_upp_deg = self.info['m_upp_deg']
-        upp_nonactive = self.info['upp_nonactive']
-        m_low_deg = self.info['m_low_deg']
-        low_nonactive = self.info['low_nonactive']
-        
-        mix_deg = self.param['mix_deg']
-        tol_deg = self.param['tol_deg']
         
         ## Choose q so that Nx + My + E^Tlambda + q = 0 at the solution (xgen, ygen)
-        q = -N*xgen-M*ygen + conmat([zeros(m_upp_deg),                                              # degenerate upper bounds (on vars with double sided bounds)
-                                   -rand(upp_nonactive),                                          # non-active upper bounds (on vars with double sided bounds)
-                                   zeros(m_low_deg),                                              # degenerate lower level (on vars with double sided bounds)
-                                   rand(low_nonactive),                                           # non-active lower level (on vars with double sided bounds)
-                                   zeros(m-m_inf-m_upp_deg-upp_nonactive-m_low_deg-low_nonactive),# ctrs where F=0, 0<y<u (for vars with double sided bounds)
-                                   zeros(m_inf_deg),                                              # degenerate lower bounds (on vars with only a lower bound)
-                                   rand(inf_nonactive),                                           # nonactive lower bounds (on vars with only a lower bound)
-                                   zeros(m_inf-m_inf_deg-inf_nonactive)])                         # ctrs where 0<y (for vars with only a lower bound)
+        q = -N*xgen-M*ygen + conmat([zeros(self.info['md_upp_deg']),                                              # degenerate upper bounds (on vars with double sided bounds)
+                                     -rand(self.info['md_upp_nonactive']),                                          # non-active upper bounds (on vars with double sided bounds)
+                                     zeros(self.info['md_low_deg']),                                              # degenerate lower level (on vars with double sided bounds)
+                                     rand(self.info['md_low_nonactive']),                                           # non-active lower level (on vars with double sided bounds)
+                                     zeros(self.info['md_float']),# ctrs where F=0, 0<y<u (for vars with double sided bounds)
+                                     zeros(self.info['ms_deg']),                                              # degenerate lower bounds (on vars with only a lower bound)
+                                     rand(self.info['ms_nonactive']),                                           # nonactive lower bounds (on vars with only a lower bound)
+                                     zeros(self.info['ms_active'])])                         # ctrs where 0<y (for vars with only a lower bound)
         
         
         #########################################
         ##        For later convenience        ##
         #########################################
         F = N*xgen + M*ygen + q
+        
+        mix_deg = self.param['mix_deg']
+        tol_deg = self.param['tol_deg']
         
         # Calculate three index sets alpha, beta and gamma at (xgen, ygen).
         # alpha denotes the index set of i at which F(i) is active, but y(i) not.
@@ -154,7 +129,7 @@ class Qpecgen200(QpecgenProblem):
         # gamma_inf denotes the index set of i at which F(i) is not active, but y(i)
         # is active for the infinite interval [0, inf).
         index = []
-        for i in range(m-m_inf):
+        for i in range(self.info['md']):
             if abs(F[i]) <= tol_deg and ygen[i] > tol_deg and ygen[i]+tol_deg < u[i]:
                 index += [1]      ## For the index set alpha.
             elif abs(F[i]) <= tol_deg and abs(ygen[i]-u[i]) <= tol_deg:
@@ -166,7 +141,7 @@ class Qpecgen200(QpecgenProblem):
             elif F[i] > tol_deg and abs(ygen[i]) <= tol_deg:
                 index += [-1]     ## For the index set gamma_low.
                 
-        for i in range(m-m_inf, m):
+        for i in range(self.info['md'], m):
             if ygen[i] > F[i]+tol_deg:
                 index += [1]     ## For the index set alpha.
             elif abs(ygen[i]-F[i]) <= tol_deg:
@@ -179,9 +154,9 @@ class Qpecgen200(QpecgenProblem):
         ## A*[x;y]+a<=0   in the relaxed nonlinear program. In particular,
         ## pi            is associated with  F(x, y)=N*x+M*y+q, and
         ## sigma                       with  y.
-        mix_upp_deg = max(mix_deg-m_low_deg-m_inf_deg, ceil(m_upp_deg*randcst()))
-        mix_low_deg = max(mix_deg-mix_upp_deg-m_inf_deg, ceil(m_low_deg*randcst()))
-        mix_inf_deg = mix_deg-mix_upp_deg-mix_low_deg
+        mix_upp_deg = max(mix_deg-self.info['md_low_deg']-self.info['ms_deg'], choose_num(self.info['md_upp_deg']))
+        mix_low_deg = max(mix_deg-mix_upp_deg-self.info['ms_deg'], choose_num(self.info['md_low_deg']))
+        mix_inf_deg = mix_deg - mix_upp_deg - mix_low_deg
         k_mix_inf = 0
         k_mix_upp = 0
         k_mix_low = 0
@@ -248,9 +223,8 @@ class Qpecgen200(QpecgenProblem):
         optsolxy = conmat([self.info['xgen'], self.info['ygen']])
         v = conmat([self.N, self.M], option='h')*optsolxy + self.q
         m = self.param['m']
-        mdouble = m - self.info['m_inf']
-        lambdaL, lambdaU = zeros(m), zeros(mdouble)
-        for i in range(mdouble):
+        lambdaL, lambdaU = zeros(m), zeros(self.info['md'])
+        for i in range(self.info['md']):
             if v[i] >= 0:
                 lambdaL[i] = 0.
                 lambdaU[i] = v[i]
@@ -258,7 +232,7 @@ class Qpecgen200(QpecgenProblem):
                 assert v[i] < 0, 'If we are not in the case v[{0}] >= 0, we must have v[{0}] < 0.  Instead, v[{0}] = {1}'.format(i, v[i])
                 lambdaL[i] = v[i]
                 lambdaU[i] = 0.
-        for i in range(mdouble, m):
+        for i in range(self.info['md'], m):
             assert v[i] >= 0, 'x, y from the provided feasible solution do not satisfy Nx+Ny+q = lambda_{0} >= 0.  Violation: {1}'.format(i, v[i])
             lambdaL[i] = v[i]
         fullsol = conmat([self.info['xgen'], self.info['ygen'], lambdaL, lambdaU])
@@ -280,48 +254,44 @@ class Qpecgen200(QpecgenProblem):
         P, info, param = self.return_problem()
         n = param['n']
         m = param['m']
-        mdouble = len(P['u'])
-        msingle = m - mdouble
+        md = info['md']
+        ms = info['ms']
         l = param['l']
         
-        names = ['x{0}'.format(i) for i in range(n)] + ['y{0}'.format(i) for i in range(m)] + ['lL{0}'.format(i) for i in range(mdouble)] + ['lU{0}'.format(i) for i in range(mdouble)]
+        names = ['x{0}'.format(i) for i in range(n)] + ['y{0}'.format(i) for i in range(m)] + ['lamSL{0}'.format(i) for i in range(ms)] + ['lamDL{0}'.format(i) for i in range(md)] + ['lU{0}'.format(i) for i in range(md)]
         Q = QPCCProblem(names)
         
-        objQ = matrix([[matrix(0.5*P['P']), matrix(zeros(2*mdouble, m+n))], [matrix(zeros(m+n, 2*mdouble)), matrix(zeros(2*mdouble, 2*mdouble))]])
-        objp = conmat([P['c'], P['d'], zeros(2*mdouble)])
+        objQ = matrix([[matrix(0.5*P['P']), matrix(zeros(2*md, m+n))], [matrix(zeros(m+n, 2*md)), matrix(zeros(2*md, 2*md))]])
+        objp = conmat([P['c'], P['d'], zeros(2*md)])
         objr = 0
         Q.set_obj(Q=objQ, p=objp, r=objr, mode='min')
         
-        G1 = conmat([P['A'], zeros(l, 2*mdouble)], option='h')
+        G1 = conmat([P['A'], zeros(l, m+md)], option='h')
         h1 = -P['a']
         Q.add_ineqs(G1, h1)
         
-        G2 = conmat([zeros(m, n), -eye(m), zeros(m, 2*mdouble)], option='h')
+        G2 = conmat([zeros(m, n), -eye(m), zeros(m, m+md)], option='h')
         h2 = zeros(m)
         Q.add_ineqs(G2, h2)
         
-        G3 = conmat([zeros(mdouble, n), eye(mdouble), zeros(mdouble, m+mdouble)], option='h')
+        G3 = conmat([zeros(md, n+ms), eye(md), zeros(md, m+md)], option='h')
         h3 = P['u']
         Q.add_ineqs(G3, h3)
         
-        G4 = conmat([zeros(mdouble, n+m), -eye(mdouble), zeros(mdouble, mdoub0le)], option='h')
-        h4 = zeros(mdouble)
+        G4 = conmat([zeros(m+md, n+m), -eye(m+md)], option='h')
+        h4 = zeros(m+md)
         Q.add_ineqs(G4, h4)
         
-        G5 = conmat([P['N'][mdouble:], P['M'][mdouble:], zeros(2*mdouble, m+mdouble)], option='h')                
-        h5 = -P['q'][mdouble:]
-        Q.add_ineqs(G5, h5)
+        Q.add_comps([[l+i, l+md+m+i] for i in range(m+md)])
         
-        G6 = conmat([zeros(mdouble, n+m+mdouble), -eye(mdouble)], option='h')
-        h6 = zeros(mdouble)
-        Q.add_ineqs(G6, h6)
+        A1 = conmat([-P['N'][:ms], -P['M'][:ms], -eye(ms), zeros(ms, 2*md)], option='h')
+        b1 = -P['q'][:ms]
+        Q.add_eqs(A1, b1)
         
-        self.add_comps([[l+i, l+mdouble+m+i] for i in range(m+mdouble)])
-        
-        A = conmat([-P['N'][:mdouble], -P['M'][:mdouble], -eye(mdouble), eye(mdouble)], option='h')
-        b = -P['q'][:mdouble]
-        Q.add_eqs(A, b)
-        
+        A2 = conmat([-P['N'][ms:], -P['M'][ms:], zeros(md,ms), -eye(md), eye(md)], option='h')
+        b2 = -P['q'][ms:]
+        Q.add_eqs(A2, b2)
+        print Q
         return Q
 
 
@@ -336,7 +306,8 @@ class Qpecgen201(Qpecgen200):
         Qpecgen200.__init__(self, param)
     
     def make_info(self):
-        m = self.param['m']
+        md = self.param['m']
+        l = self.param['l']
         second_deg = self.param['second_deg']
         
         ## Note that we only consider the following two cases of box constraints:
@@ -348,27 +319,35 @@ class Qpecgen201(Qpecgen200):
         
         ## y variables which are bounded below and above
         ## There will be m - m_inf variables with double sided bounds. each upper bound is chosen uniform in [0,10]
-        m_upp_deg = ceil((second_deg)*randcst())                           # degenerate with y at upper bound: F=0, y=u
-        m_low_deg = second_deg-m_upp_deg                                   # degenerate with y at lower bound: F=0, y=0
-        upp_nonactive = ceil((m-m_upp_deg-m_low_deg)*randcst())                # F not active, y at upper bound: F<0, y=u
-        low_nonactive = ceil((m-m_upp_deg-m_low_deg-upp_nonactive)*randcst())  # F not active, y at lower bound: F>0, y=0
-        # 'm_ing', 'm_inf_deg', 'inf_nonactive' are all 0 because in this case all y vars are bounded above and below
-        self.info = { 'm_inf': 0,
-                      'm_inf_deg': 0,
-                      'inf_nonactive': 0,
-                      'm_upp_deg': m_upp_deg,
-                      'm_low_deg': m_low_deg,
-                      'upp_nonactive': upp_nonactive,
-                      'low_nonactive': low_nonactive,
+        md_upp_deg = choose_num(second_deg)                           # degenerate with y at upper bound: F=0, y=u
+        md_low_deg = second_deg-md_upp_deg                                   # degenerate with y at lower bound: F=0, y=0
+        md_upp_nonactive = choose_num(md-md_upp_deg-md_low_deg)                # F not active, y at upper bound: F<0, y=u
+        md_low_nonactive = choose_num(md-md_upp_deg-md_low_deg-md_upp_nonactive)  # F not active, y at lower bound: F>0, y=0
+        
+        l_deg = self.param['first_deg']
+        l_nonactive = choose_num(l - l_deg)
+        self.info = { 'ms': 0,
+                      'ms_deg': 0,
+                      'ms_nonactive': 0,
+                      'ms_active': 0,
+                      'md': md,
+                      'md_upp_deg': md_upp_deg,
+                      'md_low_deg': md_low_deg,
+                      'md_upp_nonactive': md_upp_nonactive,
+                      'md_low_nonactive': md_low_nonactive,
+                      'md_float': md - md_upp_deg - md_low_deg - md_upp_nonactive - md_low_nonactive,
                       # Randomly decide how many of the non-degenerate first level ctrs should be nonactive
-                      'l_nonactive': ceil((self.param['l']-self.param['first_deg'])*randcst())}
+                      'l': l,
+                      'l_deg': l_deg,
+                      'l_nonactive': l_nonactive,
+                      'l_active': l - l_deg - l_nonactive}
     
     def make_xgen(self):
         xl = randint(-10, 0, self.param['n'])
         xu = randint(1, 10, self.param['n'])
         self.info['xl'] = npvec(xl)
         self.info['xu'] = npvec(xu)
-        self.info['xgen'] = [xl[i] + (xu[i]-xl[i])*randcst() for i in range(self.param['n'])]
+        self.info['xgen'] = npvec([(xl[i] + (xu[i]-xl[i])*randcst())[0] for i in range(self.param['n'])])
     
     def make_u(self):
-        self.u = randint(0, 10, self.info['m']-self.info['m_inf'])
+        self.u = randint(0, 10, self.info['md'])

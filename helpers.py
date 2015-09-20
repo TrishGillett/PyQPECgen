@@ -7,6 +7,9 @@ Created on Thu Sep 17 05:03:40 2015
 import scipy
 import numpy as np
 
+def choose_num(m):
+    return ceil(m*randcst())
+
 def schur(P):
     """g variables in the
     same order as matlab's schur decomp to make it easy to verify my
