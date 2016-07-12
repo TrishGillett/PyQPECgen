@@ -4,6 +4,7 @@ import sys
 import unittest
 
 from . import qpecgen_test
+from . import helpers_test
 
 
 def suite():
@@ -13,6 +14,7 @@ def suite():
     res = unittest.TestSuite()
 
     res.addTest(loader.loadTestsFromModule(qpecgen_test))
+    res.addTest(loader.loadTestsFromModule(helpers_test))
     return res
 
 
