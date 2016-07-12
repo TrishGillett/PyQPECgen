@@ -1,0 +1,17 @@
+language: python
+python:
+  - 2.7
+addons:
+  apt:
+    packages:
+      - gcc
+      - libblas-dev
+      - liblapack-dev
+      - gfortran
+install:
+  - pip install --upgrade pip==8.1.1
+  - pip install -U pip-tools
+  - pip-compile
+  - pip install -r requirements.txt
+script:
+  - python setup.py test
