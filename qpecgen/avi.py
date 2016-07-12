@@ -1,8 +1,12 @@
-from numpy import sign, array
+# pylint: disable=unused-variable
+from __future__ import absolute_import
 
-from core.qpcc import BasicQPCC
-from base import QpecgenProblem
-from helpers import *
+from numpy import sign, array
+import scipy
+
+from qpecgen.base import QpecgenProblem
+from . import helpers
+
 
 def _indices(slack, tol_deg):
     '''
@@ -14,7 +18,7 @@ def _indices(slack, tol_deg):
     nindex = len(slack)
     sign_indicator = map(sign, slack)
     tol_indicator = [(s <= -tol_deg or s >= tol_deg) for s in slack]
-    index = [-(sign_indicator[k]*tol_indicator[k])[0] for k in range(nindex)]
+    index = [-(sign_indicator[k] * tol_indicator[k])[0] for k in range(nindex)]
     return index
 
 
@@ -28,8 +32,8 @@ def _pi_sigma(index, mix_deg):
     ## sigma              with  lambda.
     """
     p = len(index)
-    pi = zeros(p)
-    sigma = zeros(p)
+    pi = helpers.zeros(p)
+    sigma = helpers.zeros(p)
 
     for i in range(p):
         # The first mix_deg ctrs contained in both sets will be degenerate
@@ -37,15 +41,16 @@ def _pi_sigma(index, mix_deg):
             pi[i], sigma[i] = 0, 0
             mix_deg = mix_deg - 1
         elif index[i] == 0:
-            pi[i], sigma[i] = randcst(), randcst()
+            pi[i], sigma[i] = helpers.randcst(), helpers.randcst()
         elif index[i] == 1:
-            pi[i], sigma[i] = 0, randcst() - randcst()
+            pi[i], sigma[i] = 0, helpers.randcst() - helpers.randcst()
         elif index[i] == -1:
-            pi[i], sigma[i] = randcst() - randcst(), 0
+            pi[i], sigma[i] = helpers.randcst() - helpers.randcst(), 0
     return pi, sigma
 
 
 class Qpecgen100(QpecgenProblem):
+
     def __init__(self, pname, param):
         # QpecgenProblem has param, type, n, m, P, A, M, N
         # Qpecgen100 additionally needs a, D, E, b, E, q, c, d
@@ -54,21 +59,22 @@ class Qpecgen100(QpecgenProblem):
         super(Qpecgen100, self).__init__(pname, param, qpec_type=100)
 
         self.info = {
-            'xgen': rand(self.n) - rand(self.n),
-            'ygen': rand(self.m) - rand(self.m),
+            'xgen': helpers.rand(self.n) - helpers.rand(self.n),
+            'ygen': helpers.rand(self.m) - helpers.rand(self.m),
             # l_nonactive: number ctrs which are not tight at and have lambda=0
             # randomly decide how many of the non-degenerate first level ctrs
             # should be nonactive
-            'l_nonactive': choose_num(self.param['l']-self.param['first_deg']),
-            ## randomly decide how many of the non-degenerate second level ctrs
-            ## should be nonactive
-            'p_nonactive': choose_num(self.param['p']-self.param['second_deg'])}
-            ## Choose a random number of second level ctrs to be nonactive at
-            ## (xgen, ygen)
+            'l_nonactive': helpers.choose_num(self.param['l'] - self.param['first_deg']),
+            # randomly decide how many of the non-degenerate second level ctrs
+            # should be nonactive
+            'p_nonactive': helpers.choose_num(self.param['p'] - self.param['second_deg'])}
+        # Choose a random number of second level ctrs to be nonactive at
+        ## (xgen, ygen)
 
         self.info.update({
             'l_deg': self.param['first_deg'],
-            'l_active': self.param['l']-self.param['first_deg']-self.info['l_nonactive']
+            'l_active': (
+                self.param['l'] - self.param['first_deg'] - self.info['l_nonactive'])
         })
 
         n = param['n']
@@ -77,16 +83,17 @@ class Qpecgen100(QpecgenProblem):
         # l: number of first degree ctrs
         l = param['l']
 
-        ####### FIRST LEVEL CTRS A[x;y] + a <= 0
-        # Generate the RHS vector and multipliers for the first level ctrs A*[x;y]+a<=0.
-        self.a = zeros(l)
+        # FIRST LEVEL CTRS A[x;y] + a <= 0
+        # Generate the RHS vector and multipliers for the first level ctrs
+        # A*[x;y]+a<=0.
+        self.a = helpers.zeros(l)
         self.make_a_ulambda()
 
-        ###### SECOND LEVEL CTRS Dx + Ey + b <= 0
-        self.D = rand(p, n) - rand(p, n)
-        self.E = rand(p, m) - rand(p, m)
+        # SECOND LEVEL CTRS Dx + Ey + b <= 0
+        self.D = helpers.rand(p, n) - helpers.rand(p, n)
+        self.E = helpers.rand(p, m) - helpers.rand(p, m)
 
-        self.b = zeros(p)
+        self.b = helpers.zeros(p)
         self.make_b_lambda()
 
         N = self.N
@@ -94,24 +101,26 @@ class Qpecgen100(QpecgenProblem):
         xgen = self.info['xgen']
         ygen = self.info['ygen']
 
-        ###### STATIONARITY CONDITION FOR LOWER LEVEL PROBLEM
+        # STATIONARITY CONDITION FOR LOWER LEVEL PROBLEM
         # Choose q so that Nx + My + E^Tlambda + q = 0 at the solution
         # (xgen, ygen, lambda)
-        self.q = -N*xgen - M*ygen - (self.E.T)*self.info['lambda']
-        ## KKT conditions of the second level problem.
+        self.q = -N * xgen - M * ygen - (self.E.T) * self.info['lambda']
+        # KKT conditions of the second level problem.
 
-        ###### For later convenience
-        self.info['F'] = npvec(N*xgen + M*ygen + self.q)
+        # For later convenience
+        self.info['F'] = helpers.npvec(N * xgen + M * ygen + self.q)
         # this must be equal to -E^T\lambda
-        self.info['g'] = npvec(self.D*xgen + self.E*ygen + self.b)
-        # this is the (negative) amount of slack in the inequalities Dx + Ey + b <= 0
+        self.info['g'] = helpers.npvec(self.D * xgen + self.E * ygen + self.b)
+        # this is the (negative) amount of slack in the inequalities Dx + Ey +
+        # b <= 0
 
         self.make_pi_sigma_index()
-        self.info['eta'] = npvec(scipy.linalg.solve(self.E, self.info['sigma']))
+        self.info['eta'] = helpers.npvec(
+            scipy.linalg.solve(self.E, self.info['sigma']))
 
-        ###### Generate coefficients of the linear part of the objective
-        self.c = zeros(n)
-        self.d = zeros(n)
+        # Generate coefficients of the linear part of the objective
+        self.c = helpers.zeros(n)
+        self.d = helpers.zeros(n)
         self.make_c_d()
 
     def make_a_ulambda(self):
@@ -121,18 +130,20 @@ class Qpecgen100(QpecgenProblem):
         xgen = self.info['xgen']
         ygen = self.info['ygen']
 
-        ####### FIRST LEVEL CTRS A[x;y] + a <= 0
+        # FIRST LEVEL CTRS A[x;y] + a <= 0
         # Generate the first level multipliers  ulambda  associated with A*[x;y]+a<=0.
         # Generate a so that the constraints Ax+a <= 0 are loose or tight where
         # appropriate.
-        self.a = -self.A*conmat([xgen, ygen]) - conmat([zeros(l_deg), # A + a = 0
-                                                        rand(l_nonactive), # A + a = 0
-                                                        zeros(l_active)]) # A + a <=0
+        self.a = -self.A * helpers.conmat([xgen, ygen]) - helpers.conmat([
+            helpers.zeros(l_deg),  # A + a = 0
+            helpers.rand(l_nonactive),  # A + a = 0
+            helpers.zeros(l_active)])  # A + a <=0
 
-        self.info['ulambda'] = conmat([
-            zeros(l_deg),       # degenerate (ctr is tight and ulambda = 0)
-            zeros(l_nonactive), # not active (ulambda = 0)
-            rand(l_active)])    # active (let ulambda be Uniform(0,1))
+        self.info['ulambda'] = helpers.conmat([
+            # degenerate (ctr is tight and ulambda = 0)
+            helpers.zeros(l_deg),
+            helpers.zeros(l_nonactive),  # not active (ulambda = 0)
+            helpers.rand(l_active)])    # active (let ulambda be Uniform(0,1))
 
     def make_b_lambda(self):
         p = self.param['p']
@@ -144,64 +155,67 @@ class Qpecgen100(QpecgenProblem):
         # p_nonactive: number of second level ctrs which aren't active.
         #              The corresponding lambdas must therefore be 0
 
-        ## figure out what RHS vector is needed for Dx + Ey + b <= 0
-        ## we intentionally build in a gap on the p_nonactive ctrs in the middle
-        self.b = -self.D*self.info['xgen']-self.E*self.info['ygen'] - \
-                conmat([
-                    zeros(second_deg),
-                    rand(p_nonactive),
-                    zeros(p-second_deg-p_nonactive)])
-                    ## The first second_deg constraints
+        # figure out what RHS vector is needed for Dx + Ey + b <= 0
+        # we intentionally build in a gap on the p_nonactive ctrs in the middle
+        self.b = -self.D * self.info['xgen'] - self.E * self.info['ygen'] - \
+            helpers.conmat([
+                helpers.zeros(second_deg),
+                helpers.rand(p_nonactive),
+                helpers.zeros(p - second_deg - p_nonactive)])
+        # The first second_deg constraints
 
-        ## we let the first second_deg cts be degenerate
-        ## (ctr is tight and lambda = zero), the next p_nonactive ctrs be not
-        ## active (lambda = 0), and the remaining ctrs be active (lambda U(0,1))
-        self.info['lambda'] = conmat([zeros(second_deg),
-                                      zeros(p_nonactive),
-                                      rand(p-second_deg-p_nonactive)])
-
+        # we let the first second_deg cts be degenerate
+        # (ctr is tight and lambda = zero), the next p_nonactive ctrs be not
+        # active (lambda = 0), and the remaining ctrs be active (lambda U(0,1))
+        self.info['lambda'] = helpers.conmat([
+            helpers.zeros(second_deg),
+            helpers.zeros(p_nonactive),
+            helpers.rand(p - second_deg - p_nonactive)])
 
     def make_pi_sigma_index(self):
         tol_deg = self.param['tol_deg']
         mix_deg = self.param['mix_deg']
 
-        ## Calculate index set at (xgen, ygen)
+        # Calculate index set at (xgen, ygen)
         slack = array(self.info['lambda']) + array(self.info['g'])
         index = _indices(slack, tol_deg)
 
-        ## Generate the first level multipliers   eta    pi    sigma associated
-        ## with other constraints other than the first level constraints
-        ## A*[x;y]+a<=0   in the relaxed nonlinear program. In particular,
-        ## eta  is associated with  N*x+M*y+q+E^T*lambda=0,
-        ## pi                 with  D*x+E*y+b,
-        ## sigma              with  lambda.
+        # Generate the first level multipliers   eta    pi    sigma associated
+        # with other constraints other than the first level constraints
+        # A*[x;y]+a<=0   in the relaxed nonlinear program. In particular,
+        # eta  is associated with  N*x+M*y+q+E^T*lambda=0,
+        # pi                 with  D*x+E*y+b,
+        # sigma              with  lambda.
         pi, sigma = _pi_sigma(index, mix_deg)
 
         self.info.update({
-            'sigma': npvec(sigma),
-            'pi': npvec(pi),
+            'sigma': helpers.npvec(sigma),
+            'pi': helpers.npvec(pi),
             'index': index})
 
     def make_c_d(self):
-        ###### Generate coefficients of the linear part of the objective
-        xy = conmat([self.info['xgen'], self.info['ygen']])
-        dxP = conmat([self.get_Px(), self.get_Pxy()], option='h')
-        dyP = conmat([self.get_Pxy().T, self.get_Py()], option='h')
+        # Generate coefficients of the linear part of the objective
+        xy = helpers.conmat([self.info['xgen'], self.info['ygen']])
+        dxP = helpers.conmat([self.get_Px(), self.get_Pxy()], option='h')
+        dyP = helpers.conmat([self.get_Pxy().T, self.get_Py()], option='h')
 
-        ##  Generate c and d such that (xgen, ygen) satisfies KKT conditions
-        ##  of AVI-MPEC as well as the first level degeneracy.
-        self.c = -(dxP*xy + (self.N.T)*self.info['eta'] + (self.D.T)*self.info['pi'])
-        self.d = -(dyP*xy + (self.M.T)*self.info['eta'] + (self.E.T)*self.info['pi'])
+        # Generate c and d such that (xgen, ygen) satisfies KKT conditions
+        # of AVI-MPEC as well as the first level degeneracy.
+        self.c = -(dxP * xy + (self.N.T) *
+                   self.info['eta'] + (self.D.T) * self.info['pi'])
+        self.d = -(dyP * xy + (self.M.T) *
+                   self.info['eta'] + (self.E.T) * self.info['pi'])
         if self.param['l'] > 0:
-            Ax, Ay = self.A[:, :self.n].T, self.A[:, self.n:self.m+self.n].T
-            self.c += -(Ax)*self.info['ulambda']
-            self.d += -(Ay)*self.info['ulambda']
+            Ax, Ay = self.A[:, :self.n].T, self.A[:, self.n:self.m + self.n].T
+            self.c += -(Ax) * self.info['ulambda']
+            self.d += -(Ay) * self.info['ulambda']
 
-        optsolxy = conmat([self.info['xgen'], self.info['ygen']])
-        optsolxyl = npvec(conmat([optsolxy, self.info['lambda']]))
+        optsolxy = helpers.conmat([self.info['xgen'], self.info['ygen']])
+        optsolxyl = helpers.npvec(helpers.conmat(
+            [optsolxy, self.info['lambda']]))
         self.info['optsol'] = optsolxyl,
-        self.info['optval'] = (0.5*(optsolxy.T) * self.P * optsolxy + \
-                                conmat([self.c, self.d]).T*optsolxy)[0, 0]
+        self.info['optval'] = (0.5 * (optsolxy.T) * self.P * optsolxy +
+                               helpers.conmat([self.c, self.d]).T * optsolxy)[0, 0]
 
     def return_problem(self):
         problem = {
@@ -218,50 +232,44 @@ class Qpecgen100(QpecgenProblem):
             'q': self.q}
         return problem, self.info, self.param
 
-    def export_QPCC(self):
+    def export_QPCC_data(self):
         P, info, param = self.return_problem()
 
         n = param['n']
         m = param['m']
         l = param['l']
-        p = len(P['b'])  ## number of g ctrs, number of lambda vars, number of equalities
+        p = len(P['b'])
+        # number of g ctrs, number of lambda vars, number of equalities
 
-        names = create_name("x", n) + create_name("y", m) + create_name("L", p)
-        Q = BasicQPCC(self.pname, names)
+        names = helpers.create_name(
+            "x", n) + helpers.create_name("y", m) + helpers.create_name("L", p)
 
-        Q1 = conmat([0.5*P['P'], zeros(n+m, p)], option='h')
-        Q2 = conmat([zeros(p, n+m+p)], option='h')
-        objQ = conmat([Q1, Q2])
-        objp = conmat([P['c'], P['d'], zeros(p, 1)])
+        Q1 = helpers.conmat(
+            [0.5 * P['P'], helpers.zeros(n + m, p)], option='h')
+        Q2 = helpers.conmat([helpers.zeros(p, n + m + p)], option='h')
+        objQ = helpers.conmat([Q1, Q2])
+        objp = helpers.conmat([P['c'], P['d'], helpers.zeros(p, 1)])
         objr = 0
-        Q.set_obj(Q=objQ, p=objp, r=objr, mode='min')
 
-        # in order of variables: x variables (n), y variables (m), lambda variables (p)
-        A = conmat([P['N'], P['M'], P['E'].T], option='h')
+        # in order of variables: x variables (n), y variables (m), lambda
+        # variables (p)
+        A = helpers.conmat([P['N'], P['M'], P['E'].T], option='h')
         b = -P['q']
-        Q.add_eqs(A, b)
 
-        G1 = conmat([P['A'], zeros(l, p)], option='h')
-        G2 = conmat([P['D'], P['E'], zeros(p, p)], option='h')
-        G3 = conmat([zeros(p, n+m), -eye(p)], option='h')
+        G1 = helpers.conmat([P['A'], helpers.zeros(l, p)], option='h')
+        G2 = helpers.conmat([P['D'], P['E'], helpers.zeros(p, p)], option='h')
+        G3 = helpers.conmat(
+            [helpers.zeros(p, n + m), -helpers.eye(p)], option='h')
 
-        G = conmat([G1, G2, G3])
-        h = conmat([-P['a'], -P['b'], zeros(p, 1)])
-        Q.add_ineqs(G, h)
+        G = helpers.conmat([G1, G2, G3])
+        h = helpers.conmat([-P['a'], -P['b'], helpers.zeros(p, 1)])
 
-        Q.add_comps([[l+i, l+p+i] for i in range(p)])
+        varsused = [1] * (n + m) + [0] * p
 
-        varsused = [1]*(n+m) + [0]*p
-
-        assert len(varsused) == len(names)
-
-        gensol = conmat([
+        gensol = helpers.conmat([
             self.info['xgen'],
             self.info['ygen'],
             self.info['lambda']])
-
-        Ax, b = Q.A*gensol, Q.b
-        assert np.allclose(Ax, b), "Ax-b=\n{0}".format(Ax-b)
 
         details = {
             'varsused': varsused,
@@ -269,7 +277,4 @@ class Qpecgen100(QpecgenProblem):
             'genparam': param,
             'gensol': gensol}
 
-        Q.add_details(details)
-
-#        print Q
-        return Q
+        return locals()
