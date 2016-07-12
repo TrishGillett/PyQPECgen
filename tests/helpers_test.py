@@ -20,6 +20,7 @@ NUMBER_OF_TRIALS = 10000
 class TestChooseNum(unittest.TestCase):
     """ Unittest for choose_num.
     """
+
     def test_zero(self):
         """ Test giving 0.
         """
@@ -50,6 +51,7 @@ class TestChooseNum(unittest.TestCase):
 class TestRand(unittest.TestCase):
     """ Unittest for rand.
     """
+
     def evaluate(self, shape, **kwargs):
         """ Evaluate rand.
 
@@ -90,6 +92,7 @@ class TestRand(unittest.TestCase):
 class TestRandcst(unittest.TestCase):
     """ Unittest for randcst.
     """
+
     def test(self):
         """ Check outputs.
 
@@ -104,6 +107,7 @@ class TestRandcst(unittest.TestCase):
 class TestRandint(unittest.TestCase):
     """ Unittest for randind.
     """
+
     def setUp(self):
         """ Prepare low and high variables.
         """
@@ -150,6 +154,7 @@ class TestRandint(unittest.TestCase):
 class TestZeros(unittest.TestCase):
     """ Unittest for zeros.
     """
+
     def evaluate(self, shape, **kwargs):
         """ Evaluate zeros.
 
@@ -181,6 +186,7 @@ class TestZeros(unittest.TestCase):
 class TestOnes(TestZeros):
     """ Unittest for ones.
     """
+
     def evaluate(self, shape, **kwargs):
         """ Evaluate ones.
 
@@ -197,6 +203,7 @@ class TestOnes(TestZeros):
 class TestEye(unittest.TestCase):
     """ Unittest for eye.
     """
+
     def test_one(self):
         """ Test for 1 by 1 matrix.
         """
@@ -217,6 +224,7 @@ class TestEye(unittest.TestCase):
 class TestConmat(unittest.TestCase):
     """ Unittest for conmat.
     """
+
     def setUp(self):
         """ Prepare tests.
         """
@@ -247,6 +255,7 @@ class TestConmat(unittest.TestCase):
 class TestNpvec(unittest.TestCase):
     """ Unittest for npvec.
     """
+
     def test(self):
         """ Test with a simple input.
         """
@@ -259,6 +268,7 @@ class TestNpvec(unittest.TestCase):
 class TestMindiag(unittest.TestCase):
     """ Unittest for mindiag.
     """
+
     def test(self):
         """ Test with a simple input.
         """
@@ -270,6 +280,7 @@ class TestMindiag(unittest.TestCase):
 class TestMaxdiag(unittest.TestCase):
     """ Unittest for maxdiag.
     """
+
     def test(self):
         """ Test with a simple input.
         """
@@ -281,6 +292,7 @@ class TestMaxdiag(unittest.TestCase):
 class TestRanddiag(unittest.TestCase):
     """ Unittest for randdiag.
     """
+
     def test_scalar(self):
         """ Test for a single value i.e. n = 1.
         """
@@ -307,6 +319,7 @@ class TestRanddiag(unittest.TestCase):
 class TestReconstruct(unittest.TestCase):
     """ Unittest for reconstruct.
     """
+
     def test_scalar(self):
         """ Test with simple inputs.
         """
@@ -331,6 +344,7 @@ class TestReconstruct(unittest.TestCase):
 class TestSchur(unittest.TestCase):
     """ Unittest for schur.
     """
+
     def evaluate(self, size):
         """ Evaluate with a give size matrix.
 
@@ -362,6 +376,7 @@ class TestSchur(unittest.TestCase):
 class TestSvd(TestSchur):
     """ Unittest for svd.
     """
+
     def evaluate(self, size):
         """ Evaluate with a give size matrix.
 
@@ -381,6 +396,7 @@ class TestSvd(TestSchur):
 class TestAdjustCond(unittest.TestCase):
     """ Unittest for adjust_cond.
     """
+
     def test(self):
         """ Test for matrixes of which size are 2 to 100.
 
@@ -410,7 +426,8 @@ class TestAdjustCond(unittest.TestCase):
             PU = PV = np.identity(size)
             PD = random.randint(1, 1024) * np.identity(size)
             cond = 73
-            self.assertRaises(ValueError, helpers.adjust_cond, PU, PD, PV, cond)
+            self.assertRaises(
+                ValueError, helpers.adjust_cond, PU, PD, PV, cond)
 
     def test_non_diagonal_matrix(self):
         """ Test for multiple of non diagonal matrix and raise errors.
@@ -419,12 +436,14 @@ class TestAdjustCond(unittest.TestCase):
             PU = PV = np.identity(size)
             PD = helpers.rand(size)
             cond = 73
-            self.assertRaises(ValueError, helpers.adjust_cond, PU, PD, PV, cond)
+            self.assertRaises(
+                ValueError, helpers.adjust_cond, PU, PD, PV, cond)
 
 
 class TestTweakDiag(unittest.TestCase):
     """ Unittest for tweak_diag.
     """
+
     def test(self):
         """ Test with a 100 by 100 matrix.
         """
@@ -441,6 +460,7 @@ class TestTweakDiag(unittest.TestCase):
 class TestGenGeneralObj(unittest.TestCase):
     """ Unittest for gen_general_obj.
     """
+
     def test_convex(self):
         """ Test for convex cases.
         """
@@ -481,6 +501,7 @@ class TestGenGeneralObj(unittest.TestCase):
 class TestSanitizeParams(unittest.TestCase):
     """ Unittest for sanitize_params.
     """
+
     def setUp(self):
         """ Prepare test.
         """
@@ -646,6 +667,7 @@ class TestSanitizeParams(unittest.TestCase):
 class TestCreateName(unittest.TestCase):
     """ Unittest for create_name.
     """
+
     def test(self):
         """ Test with a simple input.
         """
