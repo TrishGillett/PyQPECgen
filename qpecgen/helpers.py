@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=E1101
-"""
-Created on Thu Sep 17 05:03:40 2015
-
-@author: Trish
-"""
 import scipy
 import scipy.linalg
 import numpy as np

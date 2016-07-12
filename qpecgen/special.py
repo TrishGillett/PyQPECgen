@@ -1,4 +1,5 @@
-from .base import QpecgenProblem
+from __future__ import absolute_import
+from qpecgen.base import QpecgenProblem
 from . import helpers
 
 
