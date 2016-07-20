@@ -1,5 +1,14 @@
 #! /usr/bin/env python
 # pylint: disable=E1101,E0401,too-many-public-methods,relative-import
+#
+# tests/helpers_test.py
+#
+# Copyright (c) 2016 Trish Gillett-Kawamoto
+#
+# This software is released under the MIT License.
+#
+# http://opensource.org/licenses/mit-license.php
+#
 """ Unit tests for helpers module.
 """
 import functools

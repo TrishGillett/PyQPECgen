@@ -1,4 +1,13 @@
 # pylint: disable=E1101
+#
+# qpecgen/helpers.py
+#
+# Copyright (c) 2016 Trish Gillett-Kawamoto
+#
+# This software is released under the MIT License.
+#
+# http://opensource.org/licenses/mit-license.php
+#
 import scipy
 import scipy.linalg
 import numpy as np
