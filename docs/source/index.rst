@@ -3,10 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyQPECgen's documentation!
-=====================================
+pyqpecgen
+=========
+
+This package provides a Python translation of the Matlab package Qpecgen
+which generates random MPEC test problems with quadratic objective functions
+and affine variational inequality constraints.  For more information, see the
+paper and accompanying code by Houyuan Jiang, Daniel Ralph, 1997.
 
 Contents:
+---------
 
 .. toctree::
    :glob:
