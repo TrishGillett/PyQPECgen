@@ -22,15 +22,15 @@ class Qpecgen200(QpecgenProblem):
 
         # Generate xgen
         self.info = {}
-        self.make_info()
-        self.make_xgen()
+        self._make_info()
+        self._make_xgen()
         self.u = None  # just initializing
-        self.make_ygen()
-        self.make_a_ulambda()
-        self.make_F_pi_sigma_index()
-        self.make_c_d()
+        self._make_ygen()
+        self._make_a_ulambda()
+        self._make_F_pi_sigma_index()
+        self._make_c_d()
 
-    def make_info(self):
+    def _make_info(self):
         '''
         Randomly allots statuses to constraints (active, nonactive, degenerate).
         The 'l' series gives the allotment for upper level constraints Ax <= 0.
@@ -115,14 +115,14 @@ class Qpecgen200(QpecgenProblem):
         assert info['md_low_nonactive'] >= 0
         assert info['md_float'] >= 0
 
-    def make_xgen(self):
+    def _make_xgen(self):
         self.info['xgen'] = 10 * (rand(self.n) - rand(self.n))
 
-    def make_u(self):
+    def _make_u(self):
         self.u = 10. * rand(self.info['md'])
 
-    def make_ygen(self):
-        self.make_u()
+    def _make_ygen(self):
+        self._make_u()
 
         num_double_at_upper = self.info[
             'md_upp_deg'] + self.info['md_upp_nonactive']
@@ -155,7 +155,7 @@ class Qpecgen200(QpecgenProblem):
         for i in range(self.info['md']):
             assert self.info['ygen'][i] <= self.u[i]
 
-    def make_a_ulambda(self):
+    def _make_a_ulambda(self):
         xgen = self.info['xgen']
         ygen = self.info['ygen']
 
@@ -174,7 +174,7 @@ class Qpecgen200(QpecgenProblem):
             zeros(self.info['l_nonactive']),
             rand(self.info['l_active'])])
 
-    def make_F_pi_sigma_index(self):
+    def _make_F_pi_sigma_index(self):
         N = self.N
         M = self.M
         u = self.u
@@ -335,7 +335,7 @@ class Qpecgen200(QpecgenProblem):
             'pi': pi,
             'sigma': sigma})
 
-    def make_c_d(self):
+    def _make_c_d(self):
         n = self.param['n']
         m = self.param['m']
         # Generate coefficients of the linear part of the objective
@@ -355,11 +355,45 @@ class Qpecgen200(QpecgenProblem):
             self.c += -(self.A[:, :n].T * self.info['ulambda'])
             self.d += -(self.A[:, n:m + n].T * self.info['ulambda'])
         # ELEPHANT reinstate later
-#        self.info['optsol'] = self.make_fullsol()
 #        self.info['optval'] = (0.5*(self.info['optsol'].T)*self.P*self.info['optsol']
 #                          +conmat([self.c, self.d]).T*self.info['optsol'])[0,0]
 
-    def make_fullsol(self, x, y):
+    def make_QPCC_sol(self):
+        lamDL, lamS, lamDU = self.get_dual_vals(
+            self.info['xgen'], self.info['ygen'])
+
+        self.info.update({
+            'lamDL': lamDL,
+            'lamS': lamS,
+            'lamDU': lamDU})
+
+        gensol = conmat([
+            self.info['xgen'],
+            self.info['ygen'],
+            lamDL,
+            lamS,
+            lamDU])
+        return gensol
+
+    def get_dual_vals(self, x, y):
+        """
+        Computes the values of the lower level problem's dual variables
+        vectors at the given solution (x, y).
+
+        Args:
+           x, y: an optimal solution to the QPEC.
+
+        Returns:
+           :math:`\lambda_D^L`: vector of dual variable values for the
+           constraints :math:`y_D \geq 0`
+
+           :math:`\lambda_S`: vector of dual variable values for the
+           constraints :math:`y_S \geq 0`
+
+           :math:`\lambda_D^U`: vector of dual variable values for the
+           constraints :math:`y_D \leq y_u`
+        """
+
         # computing the full sol at xgen, ygen
         md = self.info['md']
         ms = self.info['ms']
@@ -392,6 +426,15 @@ class Qpecgen200(QpecgenProblem):
         return lamDL, lamS, lamDU
 
     def return_problem(self):
+        """
+        Args:
+           (None)
+
+        Returns:
+           problem: a dictionary with keys ``P``, ``c``, ``d``, ``A``, ``a``,
+           ``u``, ``N``, ``M``, ``q`` defining the
+        """
+
         problem = {
             'P': self.P,
             'c': self.c,
@@ -459,39 +502,33 @@ class Qpecgen200(QpecgenProblem):
             option='h')
         b2 = -P['q'][md:]
 
-        lamDL, lamS, lamDU = self.make_fullsol(
-            self.info['xgen'], self.info['ygen'])
-        self.info.update({
-            'lamDL': lamDL,
-            'lamDU': lamDU,
-            'lamS': lamS})
-
-        gensol = conmat([
-            self.info['xgen'],
-            self.info['ygen'],
-            lamDL,
-            lamS,
-            lamDU])
-
         details = {
             'varsused': varsused,
             'geninfo': info,
             'genparam': param,
-            'gensol': gensol}
+            'gensol': self.make_QPCC_sol()}
 
         return locals()
 
 
 class Qpecgen201(Qpecgen200):
-    # Type 201 is a more specific case of type 200 where x variables are constrained
-    ## xl <= x < xu
-    # and y variables are constrained
-    ## 0 <= y <= u
+    """
+    This subclass of ``qpecgen.box.Qpecgen200`` generates a more specific type
+    of BOX-QPEC problem known as the FULL-BOX-QPEC.  Type 201 is a more
+    specific case of type 200 where x variables are constrained
+    :math:`x_l \leq x \leq x_u` and y variables are constrained
+    :math:`0 \leq y \leq y_u \leq 10` for integers :math:`x_l \in [-10, 0]`,
+    :math:`x_u \in [1, 10]`, :math:`y_u \in [1, 10]`.
+
+    Some class methods (not shown here due to private status) are overridden
+    for this class so that problems are generated with the full box structure.
+    Methods for
+    """
 
     def __init__(self, pname, param):
         super(Qpecgen201, self).__init__(pname, param, qpec_type=201)
 
-    def make_info(self):
+    def _make_info(self):
         md = self.param['m']
         l = self.param['l']
         second_deg = self.param['second_deg']
@@ -538,7 +575,7 @@ class Qpecgen201(Qpecgen200):
             'l_nonactive': l_nonactive,
             'l_active': l - l_deg - l_nonactive})
 
-    def make_xgen(self):
+    def _make_xgen(self):
         xl = randint(-10, 0, self.param['n'])
         xu = randint(1, 10, self.param['n'])
         self.info['xl'] = npvec(xl)
@@ -547,5 +584,5 @@ class Qpecgen201(Qpecgen200):
             [(xl[i] + (xu[i] - xl[i]) * randcst())[0] for i in range(self.param['n'])])
 #        raise Exception(xl, xu, self.info['xgen'])
 
-    def make_u(self):
+    def _make_u(self):
         self.u = randint(0, 10, self.info['md'])
