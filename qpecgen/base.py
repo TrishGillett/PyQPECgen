@@ -39,10 +39,10 @@ class QpecgenProblem(object):
         self.P = self.make_obj_P()
 
         # Matrix part of upper level constraints
-        self.A = self.make_ctr_A()
+        self.A = self._make_ctr_A()
 
         # Lower level objective function coefficients
-        self.M = self.make_obj_M()
+        self.M = self._make_obj_M()
         self.N = 1. * (helpers.rand(self.m, self.n) -
                        helpers.rand(self.m, self.n))
         # This ends the data which is the same for all problem types
@@ -73,7 +73,7 @@ class QpecgenProblem(object):
         else:
             return helpers.gen_general_obj(m + n, convex_f, cond_P, scale_P)
 
-    def make_ctr_A(self):
+    def _make_ctr_A(self):
         l = self.param['l']
         m = self.param['m']
         n = self.param['n']
@@ -97,7 +97,7 @@ class QpecgenProblem(object):
         #         A[0,i] = abs(A[0,i])
         return A
 
-    def make_obj_M(self):
+    def _make_obj_M(self):
         m = self.param['m']
         mono_M = self.param['mono_M']
         symm_M = self.param['symm_M']

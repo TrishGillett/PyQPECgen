@@ -87,7 +87,7 @@ class Qpecgen100(QpecgenProblem):
         # Generate the RHS vector and multipliers for the first level ctrs
         # A*[x;y]+a<=0.
         self.a = helpers.zeros(l)
-        self.make_a_ulambda()
+        self._make_a_ulambda()
 
         # SECOND LEVEL CTRS Dx + Ey + b <= 0
         self.D = helpers.rand(p, n) - helpers.rand(p, n)
@@ -121,9 +121,9 @@ class Qpecgen100(QpecgenProblem):
         # Generate coefficients of the linear part of the objective
         self.c = helpers.zeros(n)
         self.d = helpers.zeros(n)
-        self.make_c_d()
+        self._make_c_d()
 
-    def make_a_ulambda(self):
+    def _make_a_ulambda(self):
         l_deg = self.info['l_deg']
         l_nonactive = self.info['l_nonactive']
         l_active = self.info['l_active']
@@ -193,7 +193,7 @@ class Qpecgen100(QpecgenProblem):
             'pi': helpers.npvec(pi),
             'index': index})
 
-    def make_c_d(self):
+    def _make_c_d(self):
         # Generate coefficients of the linear part of the objective
         xy = helpers.conmat([self.info['xgen'], self.info['ygen']])
         dxP = helpers.conmat([self.get_Px(), self.get_Pxy()], option='h')
