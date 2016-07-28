@@ -6,8 +6,13 @@ import numpy as np
 try:
     from numba import jit
 except ImportError:
-    def jit(func, *_args, **_kwargs):
-        return func
+    def jit(*args, **_kwargs):
+        if len(args) > 0 and hasattr(args[0], "__call__"):
+            return args[0]
+        else:
+            def _(func):
+                return func
+            return _
 
 @jit("b1(f8[:,:])", cache=True)
 def _is_diagonal(M):
