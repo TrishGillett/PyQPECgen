@@ -12,7 +12,18 @@ import scipy
 import scipy.linalg
 import numpy as np
 
+try:
+    from numba import jit
+except ImportError:
+    def jit(*args, **_kwargs):
+        if len(args) > 0 and hasattr(args[0], "__call__"):
+            return args[0]
+        else:
+            def _(func):
+                return func
+            return _
 
+@jit("b1(f8[:,:])", cache=True)
 def _is_diagonal(M):
     """ Check a given matrix is a diagonal matrix.
 
@@ -49,6 +60,7 @@ def choose_num(m):
 
 #=============================================================================#
 
+@jit("f8[:,:](i8, i8)", cache=True)
 def rand(m, n=1):
     """
     Convenience function to create an m by n numpy matrix with each element
@@ -75,6 +87,7 @@ def randint(low, high, m, n=1):
 
 #=============================================================================#
 
+@jit("f8[:,:](i8, i8)", cache=True)
 def zeros(m, n=1):
     """
     Convenience function to create an m by n matrix of all zeroes.
@@ -91,6 +104,7 @@ def ones(m, n=1):
 
 #=============================================================================#
 
+@jit("f8[:,:](i8)", cache=True)
 def eye(n):
     """
     Convenience function for an n by n identity matrix.
@@ -122,11 +136,16 @@ def npvec(x):
 
 #=============================================================================#
 
+@jit("f8(f8[:,:])", cache=True)
 def mindiag(M):
     """
     Returns the value of the smallest diagonal entry of the matrix M
     """
-    return min(M[i, i] for i in range(min(M.shape)))
+    res = M[0, 0]
+    for i in range(min(M.shape)):
+        res = min(res, M[i, i])
+    return res
+
 
 #=============================================================================#
 
@@ -157,6 +176,7 @@ def reconstruct(MU, MD, MV):
 
 #=============================================================================#
 
+@jit(cache=True)
 def schur(P):
     """g variables in the
     same order as matlab's schur decomp to make it easy to verify my
@@ -183,7 +203,6 @@ def svd(P):
     return PU, PD, PV
 
 #=============================================================================#
-
 
 def adjust_cond(PU, PD, PV, cond):
     """
