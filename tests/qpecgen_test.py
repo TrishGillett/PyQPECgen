@@ -18,40 +18,43 @@ from qpecgen import Qpecgen100, Qpecgen200, Qpecgen201
 import qpecgen.helpers as hp
 
 
-param_inst = {
-    'qpec_type': 200,       # 100, 200, 300, 800, 900.
-    'n': 30,                # Dimension of the variable x.
-    'm': 20,                # Dimension of the variable y.
-    'l': 20,                # Number of the first level constraints.
-    'cond_P': 100,          # Condition number of the Hessian P.
-    # True or False. Convexity of the objective function.
-    'convex_f': True,
-    'linobj': False,
-    'symm_M': True,         # True or False. Symmetry of the matrix M.
-    'mono_M': True,         # True or False. Monotonicity of the matrix M.
-    'cond_M': 100,          # Condition number of the matrix M.
-    'second_deg': 30,       # Number of the second level degeneracy.
-    'first_deg': 0,         # Number of the first level degeneracy.
-    'mix_deg': 10,          # Number of mixed degeneracy.
-    # Small positive tolerance for measuring degeneracy.
-    'tol_deg': 10**(-6),
-    'yinfirstlevel': True,  # Whether or not the lower level variables y are
-                            # involved in the upper level constraints
-    'random': 0,            # Indicates the random 'seed'.
-    'make_with_dbl_comps': False
-}
-param_inst.update({
-    # Number of the second level constraints
-    'p': param_inst['m'],
-    # for AVI-MPEC.
-    'scale_P': param_inst['cond_P'],   # Scaling constant for the Hessian P.
-    'scale_M': param_inst['cond_M']    # Scaling constant for the matrix M.
-})
+def make_param_inst():
+    param_inst = {
+        'qpec_type': 200,       # 100, 200, 300, 800, 900.
+        'n': 30,                # Dimension of the variable x.
+        'm': 20,                # Dimension of the variable y.
+        'l': 20,                # Number of the first level constraints.
+        'cond_P': 100,          # Condition number of the Hessian P.
+        # True or False. Convexity of the objective function.
+        'convex_f': True,
+        'linobj': False,
+        'symm_M': True,         # True or False. Symmetry of the matrix M.
+        'mono_M': True,         # True or False. Monotonicity of the matrix M.
+        'cond_M': 100,          # Condition number of the matrix M.
+        'second_deg': 30,       # Number of the second level degeneracy.
+        'first_deg': 0,         # Number of the first level degeneracy.
+        'mix_deg': 10,          # Number of mixed degeneracy.
+        # Small positive tolerance for measuring degeneracy.
+        'tol_deg': 10**(-6),
+        'yinfirstlevel': True,  # Whether or not the lower level variables y are
+                                # involved in the upper level constraints
+        'random': 0,            # Indicates the random 'seed'.
+        'make_with_dbl_comps': False
+    }
+    param_inst.update({
+        # Number of the second level constraints
+        'p': param_inst['m'],
+        # for AVI-MPEC.
+        'scale_P': param_inst['cond_P'],   # Scaling constant for the Hessian P.
+        'scale_M': param_inst['cond_M']    # Scaling constant for the matrix M.
+    })
+    return param_inst
 
 
-class test_helpers(unittest.TestCase):
+class TestHelpers(unittest.TestCase):
 
     def setUp(self):
+        param_inst = make_param_inst()
         self.P200list = []
         for _ in range(5):
             self.P200list.append(Qpecgen200('test', param_inst))
@@ -110,9 +113,10 @@ class test_helpers(unittest.TestCase):
         # TODO test monotonicity
 
 
-class test_base(unittest.TestCase):
+class TestBase(unittest.TestCase):
 
     def setUp(self):
+        param_inst = make_param_inst()
         K = 10
         self.Plist = []
         for i in range(K):
@@ -130,6 +134,7 @@ class test_base(unittest.TestCase):
                 'test_200_nc_{0}'.format(i), param_inst))
             self.Plist.append(Qpecgen201(
                 'test_201_nc_{0}'.format(i), param_inst))
+        self.param_inst = param_inst
 
     @unittest.expectedFailure
     def test_problems_feasible(self):
@@ -193,7 +198,7 @@ class test_base(unittest.TestCase):
     def gen_200(self):
         P200list = []
         for _ in range(1):
-            P200list.append(Qpecgen200('test', param_inst))
+            P200list.append(Qpecgen200('test', self.param_inst))
 
         return P200list
 
@@ -298,7 +303,7 @@ def investigate_200_info(P):
     return s + '================\n\n'
 
 
-class test_qpecgen(unittest.TestCase):
+class TestQpecgen(unittest.TestCase):
 
     def setUp(self):
         self.Plist = [np.random.rand(n, n) for n in [10, 25, 50]]
