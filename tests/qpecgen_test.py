@@ -1,6 +1,15 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 # pylint: disable=E0401,E1101
+#
+# tests/qpecgen_test.py
+#
+# Copyright (c) 2016 Trish Gillett-Kawamoto
+#
+# This software is released under the MIT License.
+#
+# http://opensource.org/licenses/mit-license.php
+#
 import unittest
 
 import numpy as np
