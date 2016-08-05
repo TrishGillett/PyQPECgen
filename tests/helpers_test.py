@@ -47,6 +47,19 @@ class TestChooseNum(unittest.TestCase):
         """
         self.assertRaises(ValueError, helpers.choose_num, -5)
 
+    def test_ransom_seed(self):
+        """Test setting random seeds.
+        """
+        np.random.seed(12345)
+        value = helpers.choose_num(10)
+        self.assertNotEqual(value, helpers.choose_num(10))
+
+        np.random.seed(12345)
+        self.assertEqual(value, helpers.choose_num(10))
+
+        np.random.seed(12346)
+        self.assertNotEqual(value, helpers.choose_num(10))
+
 
 class TestRand(unittest.TestCase):
     """ Unittest for rand.
@@ -88,6 +101,19 @@ class TestRand(unittest.TestCase):
         for _ in range(NUMBER_OF_TRIALS):
             self.evaluate((2, 2), m=2, n=2)
 
+    def test_ransom_seed(self):
+        """Test setting random seeds.
+        """
+        np.random.seed(12345)
+        value = helpers.rand(2, 2)
+        self.assertFalse(np.allclose(value, helpers.rand(2, 2)))
+
+        np.random.seed(12345)
+        self.assertTrue(np.allclose(value, helpers.rand(2, 2)))
+
+        np.random.seed(12346)
+        self.assertFalse(np.allclose(value, helpers.rand(2, 2)))
+
 
 class TestRandcst(unittest.TestCase):
     """ Unittest for randcst.
@@ -102,6 +128,19 @@ class TestRandcst(unittest.TestCase):
             m = helpers.randcst()
             self.assertGreaterEqual(m, 0)
             self.assertLessEqual(m, 1)
+
+    def test_ransom_seed(self):
+        """Test setting random seeds.
+        """
+        np.random.seed(12345)
+        value = helpers.randcst()
+        self.assertNotEqual(value, helpers.randcst())
+
+        np.random.seed(12345)
+        self.assertEqual(value, helpers.randcst())
+
+        np.random.seed(12346)
+        self.assertNotEqual(value, helpers.randcst())
 
 
 class TestRandint(unittest.TestCase):
@@ -149,6 +188,19 @@ class TestRandint(unittest.TestCase):
         """
         for _ in range(NUMBER_OF_TRIALS):
             self.evaluate((2, 2), m=2, n=2)
+
+    def test_ransom_seed(self):
+        """Test setting random seeds.
+        """
+        np.random.seed(12345)
+        value = helpers.randint(10, 256, 2, 2)
+        self.assertFalse(np.allclose(value, helpers.randint(10, 256, 2, 2)))
+
+        np.random.seed(12345)
+        self.assertTrue(np.allclose(value, helpers.randint(10, 256, 2, 2)))
+
+        np.random.seed(12346)
+        self.assertFalse(np.allclose(value, helpers.randint(10, 256, 2, 2)))
 
 
 class TestZeros(unittest.TestCase):
