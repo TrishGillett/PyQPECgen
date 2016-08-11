@@ -1,0 +1,480 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>qpecgen.avi &mdash; PyQPECgen 0.1.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="PyQPECgen 0.1.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> PyQPECgen
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/qpecgen.html">qpecgen package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">PyQPECgen</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>qpecgen.avi</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for qpecgen.avi</h1><div class="highlight"><pre>
+<span></span><span class="c1"># pylint: disable=unused-variable</span>
+<span class="c1">#</span>
+<span class="c1"># qpecgen.avi.py</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (c) 2016 Trish Gillett-Kawamoto</span>
+<span class="c1">#</span>
+<span class="c1"># This software is released under the MIT License.</span>
+<span class="c1">#</span>
+<span class="c1"># http://opensource.org/licenses/mit-license.php</span>
+<span class="c1">#</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="k">import</span> <span class="n">sign</span><span class="p">,</span> <span class="n">array</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+
+<span class="kn">from</span> <span class="nn">qpecgen.base</span> <span class="k">import</span> <span class="n">QpecgenProblem</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">helpers</span>
+
+
+<span class="k">def</span> <span class="nf">_indices</span><span class="p">(</span><span class="n">slack</span><span class="p">,</span> <span class="n">tol_deg</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Compute index such that:</span>
+<span class="sd">      index(i)=1  iff slack in (inf, -tol_deg)</span>
+<span class="sd">      index(i)=0  iff slack in [-tol_deg, tol_deg]</span>
+<span class="sd">      index(i)=-1 iff slack in (tol_deg, inf)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">nindex</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">slack</span><span class="p">)</span>
+    <span class="n">sign_indicator</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">sign</span><span class="p">,</span> <span class="n">slack</span><span class="p">)</span>
+    <span class="n">tol_indicator</span> <span class="o">=</span> <span class="p">[(</span><span class="n">s</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="n">tol_deg</span> <span class="ow">or</span> <span class="n">s</span> <span class="o">&gt;=</span> <span class="n">tol_deg</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">slack</span><span class="p">]</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="p">(</span><span class="n">sign_indicator</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">tol_indicator</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nindex</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">index</span>
+
+
+<span class="k">def</span> <span class="nf">_pi_sigma</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">mix_deg</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generate pi and sigma from index.</span>
+<span class="sd">    ## Generate the first level multipliers   eta    pi    sigma associated</span>
+<span class="sd">    ## with other constraints other than the first level constraints</span>
+<span class="sd">    ## A*[x;y]+a&lt;=0   in the relaxed nonlinear program. In particular,</span>
+<span class="sd">    ## eta  is associated with  N*x+M*y+q+E^T*lambda=0,</span>
+<span class="sd">    ## pi                 with  D*x+E*y+b,</span>
+<span class="sd">    ## sigma              with  lambda.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">pi</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+        <span class="c1"># The first mix_deg ctrs contained in both sets will be degenerate</span>
+        <span class="k">if</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">mix_deg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="n">mix_deg</span> <span class="o">=</span> <span class="n">mix_deg</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">randcst</span><span class="p">(),</span> <span class="n">helpers</span><span class="o">.</span><span class="n">randcst</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">helpers</span><span class="o">.</span><span class="n">randcst</span><span class="p">()</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">randcst</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">randcst</span><span class="p">()</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">randcst</span><span class="p">(),</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">pi</span><span class="p">,</span> <span class="n">sigma</span>
+
+
+<div class="viewcode-block" id="Qpecgen100"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.avi.Qpecgen100">[docs]</a><span class="k">class</span> <span class="nc">Qpecgen100</span><span class="p">(</span><span class="n">QpecgenProblem</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pname</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+        <span class="c1"># QpecgenProblem has param, type, n, m, P, A, M, N</span>
+        <span class="c1"># Qpecgen100 additionally needs a, D, E, b, E, q, c, d</span>
+        <span class="c1"># with helper data given by: xgen, ygen, l_nonactive, ulambda, lambd,</span>
+        <span class="c1">#                            sigma, pi, eta, index</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Qpecgen100</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">pname</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">qpec_type</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;xgen&#39;</span><span class="p">:</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">),</span>
+            <span class="s1">&#39;ygen&#39;</span><span class="p">:</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="c1"># l_nonactive: number ctrs which are not tight at and have lambda=0</span>
+            <span class="c1"># randomly decide how many of the non-degenerate first level ctrs</span>
+            <span class="c1"># should be nonactive</span>
+            <span class="s1">&#39;l_nonactive&#39;</span><span class="p">:</span> <span class="n">helpers</span><span class="o">.</span><span class="n">choose_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;first_deg&#39;</span><span class="p">]),</span>
+            <span class="c1"># randomly decide how many of the non-degenerate second level ctrs</span>
+            <span class="c1"># should be nonactive</span>
+            <span class="s1">&#39;p_nonactive&#39;</span><span class="p">:</span> <span class="n">helpers</span><span class="o">.</span><span class="n">choose_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">])}</span>
+        <span class="c1"># Choose a random number of second level ctrs to be nonactive at</span>
+        <span class="c1">## (xgen, ygen)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;l_deg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;first_deg&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;l_active&#39;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;first_deg&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_nonactive&#39;</span><span class="p">])</span>
+        <span class="p">})</span>
+
+        <span class="n">n</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span>
+        <span class="c1"># l: number of first degree ctrs</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span>
+
+        <span class="c1"># FIRST LEVEL CTRS A[x;y] + a &lt;= 0</span>
+        <span class="c1"># Generate the RHS vector and multipliers for the first level ctrs</span>
+        <span class="c1"># A*[x;y]+a&lt;=0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_a_ulambda</span><span class="p">()</span>
+
+        <span class="c1"># SECOND LEVEL CTRS Dx + Ey + b &lt;= 0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_b_lambda</span><span class="p">()</span>
+
+        <span class="n">N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">M</span>
+        <span class="n">xgen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">]</span>
+        <span class="n">ygen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]</span>
+
+        <span class="c1"># STATIONARITY CONDITION FOR LOWER LEVEL PROBLEM</span>
+        <span class="c1"># Choose q so that Nx + My + E^Tlambda + q = 0 at the solution</span>
+        <span class="c1"># (xgen, ygen, lambda)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="o">-</span><span class="n">N</span> <span class="o">*</span> <span class="n">xgen</span> <span class="o">-</span> <span class="n">M</span> <span class="o">*</span> <span class="n">ygen</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;lambda&#39;</span><span class="p">]</span>
+        <span class="c1"># KKT conditions of the second level problem.</span>
+
+        <span class="c1"># For later convenience</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;F&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">npvec</span><span class="p">(</span><span class="n">N</span> <span class="o">*</span> <span class="n">xgen</span> <span class="o">+</span> <span class="n">M</span> <span class="o">*</span> <span class="n">ygen</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+        <span class="c1"># this must be equal to -E^T\lambda</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">npvec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">*</span> <span class="n">xgen</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="o">*</span> <span class="n">ygen</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+        <span class="c1"># this is the (negative) amount of slack in the inequalities Dx + Ey +</span>
+        <span class="c1"># b &lt;= 0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_pi_sigma_index</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;eta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">npvec</span><span class="p">(</span>
+            <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;sigma&#39;</span><span class="p">]))</span>
+
+        <span class="c1"># Generate coefficients of the linear part of the objective</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_c_d</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_make_a_ulambda</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">l_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_deg&#39;</span><span class="p">]</span>
+        <span class="n">l_nonactive</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_nonactive&#39;</span><span class="p">]</span>
+        <span class="n">l_active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_active&#39;</span><span class="p">]</span>
+        <span class="n">xgen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">]</span>
+        <span class="n">ygen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]</span>
+
+        <span class="c1"># FIRST LEVEL CTRS A[x;y] + a &lt;= 0</span>
+        <span class="c1"># Generate the first level multipliers  ulambda  associated with A*[x;y]+a&lt;=0.</span>
+        <span class="c1"># Generate a so that the constraints Ax+a &lt;= 0 are loose or tight where</span>
+        <span class="c1"># appropriate.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">*</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="n">xgen</span><span class="p">,</span> <span class="n">ygen</span><span class="p">])</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l_deg</span><span class="p">),</span>  <span class="c1"># A + a = 0</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">l_nonactive</span><span class="p">),</span>  <span class="c1"># A + a = 0</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l_active</span><span class="p">)])</span>  <span class="c1"># A + a &lt;=0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ulambda&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span>
+            <span class="c1"># degenerate (ctr is tight and ulambda = 0)</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l_deg</span><span class="p">),</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l_nonactive</span><span class="p">),</span>  <span class="c1"># not active (ulambda = 0)</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">l_active</span><span class="p">)])</span>    <span class="c1"># active (let ulambda be Uniform(0,1))</span>
+
+<div class="viewcode-block" id="Qpecgen100.make_b_lambda"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.avi.Qpecgen100.make_b_lambda">[docs]</a>    <span class="k">def</span> <span class="nf">make_b_lambda</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span>
+        <span class="n">second_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span>
+        <span class="n">p_nonactive</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;p_nonactive&#39;</span><span class="p">]</span>
+        <span class="c1"># p: number of second degree ctrs (and therefore the number of lambda vars)</span>
+        <span class="c1"># second_deg: number of second level ctrs for which the ctr is active</span>
+        <span class="c1">#             AND lambda=0</span>
+        <span class="c1"># p_nonactive: number of second level ctrs which aren&#39;t active.</span>
+        <span class="c1">#              The corresponding lambdas must therefore be 0</span>
+
+        <span class="c1"># figure out what RHS vector is needed for Dx + Ey + b &lt;= 0</span>
+        <span class="c1"># we intentionally build in a gap on the p_nonactive ctrs in the middle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]</span> <span class="o">-</span> \
+            <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span>
+                <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">second_deg</span><span class="p">),</span>
+                <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">p_nonactive</span><span class="p">),</span>
+                <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">second_deg</span> <span class="o">-</span> <span class="n">p_nonactive</span><span class="p">)])</span>
+        <span class="c1"># The first second_deg constraints</span>
+
+        <span class="c1"># we let the first second_deg cts be degenerate</span>
+        <span class="c1"># (ctr is tight and lambda = zero), the next p_nonactive ctrs be not</span>
+        <span class="c1"># active (lambda = 0), and the remaining ctrs be active (lambda U(0,1))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;lambda&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">second_deg</span><span class="p">),</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p_nonactive</span><span class="p">),</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">second_deg</span> <span class="o">-</span> <span class="n">p_nonactive</span><span class="p">)])</span></div>
+
+<div class="viewcode-block" id="Qpecgen100.make_pi_sigma_index"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.avi.Qpecgen100.make_pi_sigma_index">[docs]</a>    <span class="k">def</span> <span class="nf">make_pi_sigma_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">tol_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;tol_deg&#39;</span><span class="p">]</span>
+        <span class="n">mix_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;mix_deg&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Calculate index set at (xgen, ygen)</span>
+        <span class="n">slack</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;lambda&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">])</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">_indices</span><span class="p">(</span><span class="n">slack</span><span class="p">,</span> <span class="n">tol_deg</span><span class="p">)</span>
+
+        <span class="c1"># Generate the first level multipliers   eta    pi    sigma associated</span>
+        <span class="c1"># with other constraints other than the first level constraints</span>
+        <span class="c1"># A*[x;y]+a&lt;=0   in the relaxed nonlinear program. In particular,</span>
+        <span class="c1"># eta  is associated with  N*x+M*y+q+E^T*lambda=0,</span>
+        <span class="c1"># pi                 with  D*x+E*y+b,</span>
+        <span class="c1"># sigma              with  lambda.</span>
+        <span class="n">pi</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="n">_pi_sigma</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">mix_deg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;sigma&#39;</span><span class="p">:</span> <span class="n">helpers</span><span class="o">.</span><span class="n">npvec</span><span class="p">(</span><span class="n">sigma</span><span class="p">),</span>
+            <span class="s1">&#39;pi&#39;</span><span class="p">:</span> <span class="n">helpers</span><span class="o">.</span><span class="n">npvec</span><span class="p">(</span><span class="n">pi</span><span class="p">),</span>
+            <span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="n">index</span><span class="p">})</span></div>
+
+    <span class="k">def</span> <span class="nf">_make_c_d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Generate coefficients of the linear part of the objective</span>
+        <span class="n">xy</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]])</span>
+        <span class="n">dxP</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">get_Px</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_Pxy</span><span class="p">()],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">dyP</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">get_Pxy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_Py</span><span class="p">()],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Generate c and d such that (xgen, ygen) satisfies KKT conditions</span>
+        <span class="c1"># of AVI-MPEC as well as the first level degeneracy.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">dxP</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;eta&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pi&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">dyP</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;eta&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pi&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">Ax</span><span class="p">,</span> <span class="n">Ay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">[:,</span> <span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">+=</span> <span class="o">-</span><span class="p">(</span><span class="n">Ax</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ulambda&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">+=</span> <span class="o">-</span><span class="p">(</span><span class="n">Ay</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ulambda&#39;</span><span class="p">]</span>
+
+        <span class="n">optsolxy</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]])</span>
+        <span class="n">optsolxyl</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">npvec</span><span class="p">(</span><span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">optsolxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;lambda&#39;</span><span class="p">]]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;optsol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">optsolxyl</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;optval&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">optsolxy</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span> <span class="o">*</span> <span class="n">optsolxy</span> <span class="o">+</span>
+                               <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="p">])</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">optsolxy</span><span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Qpecgen100.return_problem"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.avi.Qpecgen100.return_problem">[docs]</a>    <span class="k">def</span> <span class="nf">return_problem</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">,</span>
+            <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
+            <span class="s1">&#39;d&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="p">,</span>
+            <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span>
+            <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span>
+            <span class="s1">&#39;D&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span>
+            <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">,</span>
+            <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,</span>
+            <span class="s1">&#39;M&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="p">,</span>
+            <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">,</span>
+            <span class="s1">&#39;q&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">problem</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span></div>
+
+<div class="viewcode-block" id="Qpecgen100.export_QPCC_data"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.avi.Qpecgen100.export_QPCC_data">[docs]</a>    <span class="k">def</span> <span class="nf">export_QPCC_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">P</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_problem</span><span class="p">()</span>
+
+        <span class="n">n</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">])</span>
+        <span class="c1"># number of g ctrs, number of lambda vars, number of equalities</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">create_name</span><span class="p">(</span>
+            <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="n">helpers</span><span class="o">.</span><span class="n">create_name</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="n">helpers</span><span class="o">.</span><span class="n">create_name</span><span class="p">(</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+        <span class="n">Q1</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">(</span>
+            <span class="p">[</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;P&#39;</span><span class="p">],</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">,</span> <span class="n">p</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">Q2</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">m</span> <span class="o">+</span> <span class="n">p</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">objQ</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="n">Q1</span><span class="p">,</span> <span class="n">Q2</span><span class="p">])</span>
+        <span class="n">objp</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">],</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">],</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+        <span class="n">objr</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># in order of variables: x variables (n), y variables (m), lambda</span>
+        <span class="c1"># variables (p)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">],</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;M&#39;</span><span class="p">],</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="o">-</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;q&#39;</span><span class="p">]</span>
+
+        <span class="n">G1</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">],</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">p</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">G2</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">],</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">],</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">G3</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">),</span> <span class="o">-</span><span class="n">helpers</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="n">G1</span><span class="p">,</span> <span class="n">G2</span><span class="p">,</span> <span class="n">G3</span><span class="p">])</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span><span class="o">-</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">],</span> <span class="o">-</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">],</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+
+        <span class="n">varsused</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span>
+
+        <span class="n">gensol</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">([</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;lambda&#39;</span><span class="p">]])</span>
+
+        <span class="n">details</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;varsused&#39;</span><span class="p">:</span> <span class="n">varsused</span><span class="p">,</span>
+            <span class="s1">&#39;geninfo&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">,</span>
+            <span class="s1">&#39;genparam&#39;</span><span class="p">:</span> <span class="n">param</span><span class="p">,</span>
+            <span class="s1">&#39;gensol&#39;</span><span class="p">:</span> <span class="n">gensol</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="nb">locals</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Trish Gillett-Kawamoto.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

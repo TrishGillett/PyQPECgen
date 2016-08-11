@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>qpecgen.base &mdash; PyQPECgen 0.1.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="PyQPECgen 0.1.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> PyQPECgen
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/qpecgen.html">qpecgen package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">PyQPECgen</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>qpecgen.base</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for qpecgen.base</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># qpecgen/base.py</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (c) 2016 Trish Gillett-Kawamoto</span>
+<span class="c1">#</span>
+<span class="c1"># This software is released under the MIT License.</span>
+<span class="c1">#</span>
+<span class="c1"># http://opensource.org/licenses/mit-license.php</span>
+<span class="c1">#</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Houyuan Jiang, Daniel Ralph, copyright 1997</span>
+<span class="sd">Matlab code accompanied the paper:</span>
+<span class="sd">  Jiang, H., Ralph D.</span>
+<span class="sd">  QPECgen, a MATLAB generator for mathematical programs with</span>
+<span class="sd">  Computational Optimization and Applications 13 (1999), 25-59.</span>
+
+<span class="sd">Python implementation coded by Patricia Gillett, 2013-2015</span>
+<span class="sd">See readme.txt for details about the structures of generated problems.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">helpers</span>
+
+
+<div class="viewcode-block" id="QpecgenProblem"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.base.QpecgenProblem">[docs]</a><span class="k">class</span> <span class="nc">QpecgenProblem</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pname</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">qpec_type</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pname</span> <span class="o">=</span> <span class="n">pname</span>
+
+        <span class="c1">## CHECK CONSISTENCY OF PARAMETER DATA ##</span>
+        <span class="n">check</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># change to False to not check consistency of data</span>
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">sanitize_params</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">qpec_type</span><span class="o">=</span><span class="n">qpec_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param</span> <span class="o">=</span> <span class="n">param</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">qpec_type</span>
+
+        <span class="c1"># Unpack parameters from param, which is a dictionary.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="c1"># For now, stop controlling the seed because unless implemented</span>
+        <span class="c1"># differently this would generate every problem with the same seed.</span>
+        <span class="c1"># np.random.seed = param[&#39;random&#39;]</span>
+
+        <span class="c1"># Upper level objective function coefficients</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">P</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_obj_P</span><span class="p">()</span>
+
+        <span class="c1"># Matrix part of upper level constraints</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_ctr_A</span><span class="p">()</span>
+
+        <span class="c1"># Lower level objective function coefficients</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_obj_M</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">*</span> <span class="p">(</span><span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span>
+                       <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">))</span>
+        <span class="c1"># This ends the data which is the same for all problem types</span>
+
+<div class="viewcode-block" id="QpecgenProblem.get_Px"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.base.QpecgenProblem.get_Px">[docs]</a>    <span class="k">def</span> <span class="nf">get_Px</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="QpecgenProblem.get_Py"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.base.QpecgenProblem.get_Py">[docs]</a>    <span class="k">def</span> <span class="nf">get_Py</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="QpecgenProblem.get_Pxy"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.base.QpecgenProblem.get_Pxy">[docs]</a>    <span class="k">def</span> <span class="nf">get_Pxy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Pxy[i,j] gives coeff for x[i]y[j]</span>
+        <span class="c1"># (but don&#39;t forget that P is symmetric so these terms</span>
+        <span class="c1"># are encountered twice when using P)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="QpecgenProblem.make_obj_P"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.base.QpecgenProblem.make_obj_P">[docs]</a>    <span class="k">def</span> <span class="nf">make_obj_P</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="n">linobj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;linobj&#39;</span><span class="p">]</span>
+        <span class="n">convex_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;convex_f&#39;</span><span class="p">]</span>
+        <span class="n">cond_P</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;cond_P&#39;</span><span class="p">]</span>
+        <span class="n">scale_P</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;scale_P&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">linobj</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">800</span><span class="p">,</span> <span class="mi">900</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">helpers</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">helpers</span><span class="o">.</span><span class="n">gen_general_obj</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">,</span> <span class="n">convex_f</span><span class="p">,</span> <span class="n">cond_P</span><span class="p">,</span> <span class="n">scale_P</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_make_ctr_A</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;yinfirstlevel&#39;</span><span class="p">]:</span>
+            <span class="c1"># yinfirstlevel = True means the upper level yinfirstlevels</span>
+            <span class="c1"># involve x and y</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">)</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># yinfirstlevel = False means they only use x variables</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">conmat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="p">)),</span>
+                    <span class="n">helpers</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+                <span class="p">],</span>
+                <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+
+        <span class="c1"># if A.size[0] &gt; 0:</span>
+        <span class="c1">#     for i in range(A.size[1]):</span>
+        <span class="c1">#         A[0,i] = abs(A[0,i])</span>
+        <span class="k">return</span> <span class="n">A</span>
+
+    <span class="k">def</span> <span class="nf">_make_obj_M</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">mono_M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;mono_M&#39;</span><span class="p">]</span>
+        <span class="n">symm_M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;symm_M&#39;</span><span class="p">]</span>
+        <span class="n">cond_M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;cond_M&#39;</span><span class="p">]</span>
+        <span class="n">scale_M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;scale_M&#39;</span><span class="p">]</span>
+
+        <span class="n">M</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="o">-</span> <span class="n">helpers</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+        <span class="c1"># Consider the symmetric property of M.</span>
+        <span class="k">if</span> <span class="n">symm_M</span><span class="p">:</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">M</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># Consider the monotonicity property and the condition number of M.</span>
+        <span class="k">if</span> <span class="n">mono_M</span> <span class="ow">and</span> <span class="n">symm_M</span><span class="p">:</span>
+            <span class="c1"># Monotone and symmetric case.</span>
+            <span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">schur</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+            <span class="n">MD</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">tweak_diag</span><span class="p">(</span><span class="n">MD</span><span class="p">)</span>
+            <span class="c1"># Generate positive diagonal matrix.</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">adjust_cond</span><span class="p">(</span><span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span><span class="p">,</span> <span class="n">cond_M</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="ow">not</span> <span class="n">mono_M</span><span class="p">)</span> <span class="ow">and</span> <span class="n">symm_M</span><span class="p">:</span>
+            <span class="c1"># Nonmonotone and symmetric case.</span>
+            <span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">adjust_cond</span><span class="p">(</span><span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span><span class="p">,</span> <span class="n">cond_M</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">mono_M</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">symm_M</span><span class="p">):</span>
+            <span class="c1"># Monotone and asymmetric case.</span>
+            <span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">schur</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+            <span class="c1"># note that since symm_M=False, MD is not a diagonal matrix</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">MD</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">MD</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+                <span class="c1"># Make real eigenvalues for MD.</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">reconstruct</span><span class="p">(</span><span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span><span class="p">)</span>
+            <span class="c1"># New asymmetric matrix with real eigenvalues.</span>
+
+            <span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">schur</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+            <span class="c1"># Schur decomposition. MD is upper triangular since M has real</span>
+            <span class="c1"># eigenvalues.</span>
+            <span class="n">MD</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">tweak_diag</span><span class="p">(</span><span class="n">MD</span><span class="p">)</span>
+            <span class="c1"># Generate positive diagonal matrix.</span>
+            <span class="n">MMU</span><span class="p">,</span> <span class="n">MMD</span><span class="p">,</span> <span class="n">MMV</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">schur</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">MV</span><span class="p">,</span> <span class="n">MU</span><span class="p">))</span>  <span class="c1"># MMD is diagonal.</span>
+            <span class="n">MM</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">adjust_cond</span><span class="p">(</span><span class="n">MMU</span><span class="p">,</span> <span class="n">MMD</span><span class="p">,</span> <span class="n">MMV</span><span class="p">,</span> <span class="n">cond_M</span> <span class="o">*</span> <span class="n">cond_M</span><span class="p">)</span>
+            <span class="n">MD</span> <span class="o">=</span> <span class="p">(</span><span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">MM</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+            <span class="c1"># Use the relation of condition numbers for MD and MD.T*MD</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">reconstruct</span><span class="p">(</span><span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span><span class="p">)</span>
+            <span class="c1">#  Generate a matrix with the required condition number cond_M.</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="ow">not</span> <span class="n">mono_M</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">symm_M</span><span class="p">):</span>
+            <span class="c1"># Nonmonotone and asymmetric case.</span>
+            <span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+            <span class="c1"># Singular value decomposition.</span>
+            <span class="n">MD</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">adjust_cond</span><span class="p">(</span><span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span><span class="p">,</span> <span class="n">cond_M</span><span class="p">)</span>
+
+        <span class="n">M</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">*</span> <span class="n">scale_M</span> <span class="o">/</span> <span class="n">cond_M</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span>
+        <span class="c1"># Rescale M when cond_M is large.</span>
+        <span class="k">return</span> <span class="n">M</span>
+
+<div class="viewcode-block" id="QpecgenProblem.return_problem"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.base.QpecgenProblem.return_problem">[docs]</a>    <span class="k">def</span> <span class="nf">return_problem</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Trish Gillett-Kawamoto.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

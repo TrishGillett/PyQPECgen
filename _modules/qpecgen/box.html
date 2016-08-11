@@ -1,0 +1,788 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>qpecgen.box &mdash; PyQPECgen 0.1.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="PyQPECgen 0.1.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> PyQPECgen
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/qpecgen.html">qpecgen package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">PyQPECgen</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>qpecgen.box</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for qpecgen.box</h1><div class="highlight"><pre>
+<span></span><span class="c1"># pylint: disable=unused-variable</span>
+<span class="c1">#</span>
+<span class="c1"># qpecgen/box.py</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (c) 2016 Trish Gillett-Kawamoto</span>
+<span class="c1">#</span>
+<span class="c1"># This software is released under the MIT License.</span>
+<span class="c1">#</span>
+<span class="c1"># http://opensource.org/licenses/mit-license.php</span>
+<span class="c1">#</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+
+<span class="kn">from</span> <span class="nn">cvxopt</span> <span class="k">import</span> <span class="n">matrix</span>
+
+<span class="kn">from</span> <span class="nn">qpecgen.base</span> <span class="k">import</span> <span class="n">QpecgenProblem</span>
+<span class="kn">from</span> <span class="nn">qpecgen.helpers</span> <span class="k">import</span> <span class="n">choose_num</span><span class="p">,</span> <span class="n">rand</span><span class="p">,</span> <span class="n">conmat</span><span class="p">,</span> <span class="n">randint</span><span class="p">,</span> <span class="n">npvec</span><span class="p">,</span> <span class="n">zeros</span>
+<span class="kn">from</span> <span class="nn">qpecgen.helpers</span> <span class="k">import</span> <span class="n">randcst</span><span class="p">,</span> <span class="n">create_name</span><span class="p">,</span> <span class="n">eye</span>
+
+
+<div class="viewcode-block" id="Qpecgen200"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.box.Qpecgen200">[docs]</a><span class="k">class</span> <span class="nc">Qpecgen200</span><span class="p">(</span><span class="n">QpecgenProblem</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Qpecgen200 generates and manages the data for a qpecgen problem of type 200</span>
+<span class="sd">    (BOX-QPEC).  In addition to the methods used in problem construction, the</span>
+<span class="sd">    make_QPCCProblem() method can be used to export the problem as a QpecgenQPCC,</span>
+<span class="sd">    which is a BasicQPCC object in which some qpecgen specific data is also</span>
+<span class="sd">    preserved.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pname</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">qpec_type</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Qpecgen200</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">pname</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">qpec_type</span><span class="o">=</span><span class="n">qpec_type</span><span class="p">)</span>
+
+        <span class="c1"># Generate xgen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_info</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_xgen</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># just initializing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_ygen</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_a_ulambda</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_F_pi_sigma_index</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_c_d</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_make_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Randomly allots statuses to constraints (active, nonactive, degenerate).</span>
+<span class="sd">        The &#39;l&#39; series gives the allotment for upper level constraints Ax &lt;= 0.</span>
+<span class="sd">        The &#39;ms&#39; series determines what happens with the single-bounded lower</span>
+<span class="sd">        level variables.  The &#39;md&#39; series determines what happens with the</span>
+<span class="sd">        double-bounded lower level variables.</span>
+
+<span class="sd">        Since the ordering of variables and constraints within these groups is</span>
+<span class="sd">        not significant, the generator just determines how many will have a</span>
+<span class="sd">        given status and then the first l_deg upper level constraints will be</span>
+<span class="sd">        degenerate, the next l_non will be nonactive, etc.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Decide how many of the non-degenerate first level ctrs should be</span>
+        <span class="c1"># nonactive</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span>
+        <span class="n">l_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;first_deg&#39;</span><span class="p">]</span>
+        <span class="n">l_nonactive</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">l</span> <span class="o">-</span> <span class="n">l_deg</span><span class="p">)</span>
+        <span class="n">l_active</span> <span class="o">=</span> <span class="n">l</span> <span class="o">-</span> <span class="n">l_deg</span> <span class="o">-</span> <span class="n">l_nonactive</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;l&#39;</span><span class="p">:</span> <span class="n">l</span><span class="p">,</span>
+            <span class="s1">&#39;l_deg&#39;</span><span class="p">:</span> <span class="n">l_deg</span><span class="p">,</span>
+            <span class="s1">&#39;l_nonactive&#39;</span><span class="p">:</span> <span class="n">l_nonactive</span><span class="p">,</span>
+            <span class="s1">&#39;l_active&#39;</span><span class="p">:</span> <span class="n">l_active</span><span class="p">})</span>
+
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">second_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span>
+
+        <span class="n">md</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="n">m</span> <span class="o">-</span> <span class="n">md</span>
+
+        <span class="c1"># single bounded y variables (only bounded below):</span>
+        <span class="n">ms_deg</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">choose_num</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">second_deg</span><span class="p">)),</span>
+                     <span class="n">second_deg</span> <span class="o">-</span> <span class="n">m</span> <span class="o">+</span> <span class="n">ms</span><span class="p">)</span>
+        <span class="n">ms_nonactive</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">ms</span> <span class="o">-</span> <span class="n">ms_deg</span><span class="p">)</span>
+        <span class="n">ms_active</span> <span class="o">=</span> <span class="n">ms</span> <span class="o">-</span> <span class="n">ms_deg</span> <span class="o">-</span> <span class="n">ms_nonactive</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span>
+            <span class="s1">&#39;ms&#39;</span><span class="p">:</span> <span class="n">ms</span><span class="p">,</span>
+            <span class="s1">&#39;ms_deg&#39;</span><span class="p">:</span> <span class="n">ms_deg</span><span class="p">,</span>  <span class="c1"># F=0, y=0</span>
+            <span class="s1">&#39;ms_nonactive&#39;</span><span class="p">:</span> <span class="n">ms_nonactive</span><span class="p">,</span>  <span class="c1"># F&gt;0, y=0</span>
+            <span class="s1">&#39;ms_active&#39;</span><span class="p">:</span> <span class="n">ms_active</span><span class="p">})</span>  <span class="c1"># F=0, y&gt;0</span>
+
+        <span class="c1"># divvy up degeneracy numbers so there are second_deg degenerate y vars</span>
+
+        <span class="n">remaining_degen</span> <span class="o">=</span> <span class="n">second_deg</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_deg&#39;</span><span class="p">]</span>
+        <span class="n">md_upp_deg</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">remaining_degen</span><span class="p">)</span>  <span class="c1"># F=0, y=u</span>
+        <span class="n">md_low_deg</span> <span class="o">=</span> <span class="n">remaining_degen</span> <span class="o">-</span> <span class="n">md_upp_deg</span>  <span class="c1"># F=0, y=0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;md&#39;</span><span class="p">:</span> <span class="n">md</span><span class="p">,</span>
+            <span class="s1">&#39;md_upp_deg&#39;</span><span class="p">:</span> <span class="n">md_upp_deg</span><span class="p">,</span>
+            <span class="s1">&#39;md_low_deg&#39;</span><span class="p">:</span> <span class="n">md_low_deg</span><span class="p">})</span>
+
+        <span class="c1"># double bounded y variables (bounded below and above):</span>
+        <span class="n">md_nondegen</span> <span class="o">=</span> <span class="n">md</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_deg&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_deg&#39;</span><span class="p">]</span>
+        <span class="n">md_upp_non</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">md_nondegen</span><span class="p">)</span>  <span class="c1"># F&lt;0, y=u</span>
+        <span class="n">md_low_non</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">md_nondegen</span> <span class="o">-</span> <span class="n">md_upp_non</span><span class="p">)</span>  <span class="c1"># F&gt;0, y=0</span>
+        <span class="n">md_float</span> <span class="o">=</span> <span class="n">md_nondegen</span> <span class="o">-</span> <span class="n">md_upp_non</span> <span class="o">-</span> <span class="n">md_low_non</span>  <span class="c1"># F=0, 0&lt;y&lt;u</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;md_upp_nonactive&#39;</span><span class="p">:</span> <span class="n">md_upp_non</span><span class="p">,</span>
+            <span class="s1">&#39;md_low_nonactive&#39;</span><span class="p">:</span> <span class="n">md_low_non</span><span class="p">,</span>
+            <span class="s1">&#39;md_float&#39;</span><span class="p">:</span> <span class="n">md_float</span><span class="p">})</span>
+
+        <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_deg&#39;</span><span class="p">]</span> <span class="o">+</span> \
+            <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_active&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_nonactive&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_deg&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_nonactive&#39;</span><span class="p">]</span> <span class="o">+</span> \
+            <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_deg&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_nonactive&#39;</span><span class="p">]</span> <span class="o">+</span> \
+            <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_float&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_deg&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_deg&#39;</span><span class="p">]</span> <span class="o">+</span> \
+            <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_deg&#39;</span><span class="p">]</span>
+
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_deg&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_active&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_nonactive&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_deg&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_nonactive&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_deg&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_nonactive&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_float&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_make_xgen</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="p">(</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_make_u</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="mf">10.</span> <span class="o">*</span> <span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_make_ygen</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_u</span><span class="p">()</span>
+
+        <span class="n">num_double_at_upper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span>
+            <span class="s1">&#39;md_upp_deg&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_nonactive&#39;</span><span class="p">]</span>
+        <span class="n">num_not_floating</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_float&#39;</span><span class="p">]</span>
+
+        <span class="n">double_at_upper</span> <span class="o">=</span> <span class="n">npvec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">[:</span><span class="n">num_double_at_upper</span><span class="p">])</span>
+        <span class="n">double_at_lower</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_deg&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_nonactive&#39;</span><span class="p">])</span>
+        <span class="n">double_floating</span> <span class="o">=</span> <span class="n">npvec</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">randcst</span><span class="p">()</span> <span class="o">*</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">[</span><span class="n">num_not_floating</span><span class="p">:]])</span>
+
+        <span class="n">single_at_lower</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_deg&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_nonactive&#39;</span><span class="p">])</span>
+        <span class="n">single_floating</span> <span class="o">=</span> <span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_active&#39;</span><span class="p">])</span>
+
+<span class="c1"># ygen = conmat([npvec(u[:m_upp_deg+upp_nonactive]),            # double_at_upper</span>
+<span class="c1">#                     zeros(m_low_deg+low_nonactive),          # double_at_lower</span>
+<span class="c1">#                     v2,                                      # double_floating</span>
+<span class="c1">#                     zeros(m_inf_deg+inf_nonactive),          # single_at_lower</span>
+<span class="c1"># rand(m_inf-m_inf_deg-inf_nonactive)])    # single_floating</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span>
+            <span class="n">double_at_upper</span><span class="p">,</span>  <span class="c1"># y=u cases</span>
+            <span class="n">double_at_lower</span><span class="p">,</span>  <span class="c1"># y=0 cases</span>
+            <span class="n">double_floating</span><span class="p">,</span>  <span class="c1"># 0&lt;y&lt;u cases</span>
+            <span class="n">single_at_lower</span><span class="p">,</span>  <span class="c1"># y=0 cases</span>
+            <span class="n">single_floating</span><span class="p">])</span>  <span class="c1"># y&gt;0 cases</span>
+
+        <span class="k">for</span> <span class="n">yi</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">yi</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">]):</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_make_a_ulambda</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">xgen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">]</span>
+        <span class="n">ygen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]</span>
+
+        <span class="c1"># FIRST LEVEL CTRS A[x;y] + a &lt;= 0</span>
+        <span class="c1"># Generate the first level multipliers  ulambda  associated with A*[x;y]+a&lt;=0.</span>
+        <span class="c1"># Generate a so the constraints Ax+a &lt;= 0 are loose or tight where</span>
+        <span class="c1"># appropriate.</span>
+        <span class="n">Axy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">*</span> <span class="n">conmat</span><span class="p">([</span><span class="n">xgen</span><span class="p">,</span> <span class="n">ygen</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="n">Axy</span> <span class="o">-</span> <span class="n">conmat</span><span class="p">([</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_deg&#39;</span><span class="p">]),</span>  <span class="c1"># A + a = 0</span>
+            <span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_nonactive&#39;</span><span class="p">]),</span>  <span class="c1"># A + a = 0</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_active&#39;</span><span class="p">])])</span>  <span class="c1"># A + a &lt;=0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ulambda&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_deg&#39;</span><span class="p">]),</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_nonactive&#39;</span><span class="p">]),</span>
+            <span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;l_active&#39;</span><span class="p">])])</span>
+
+    <span class="k">def</span> <span class="nf">_make_F_pi_sigma_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">M</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span>
+        <span class="n">xgen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">]</span>
+        <span class="n">ygen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]</span>
+
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Design q so that Nx + My + E^Tlambda + q = 0 at the solution (xgen,</span>
+        <span class="c1"># ygen)</span>
+
+        <span class="n">q</span> <span class="o">=</span> <span class="o">-</span><span class="n">N</span> <span class="o">*</span> <span class="n">xgen</span> <span class="o">-</span> <span class="n">M</span> <span class="o">*</span> <span class="n">ygen</span>
+        <span class="n">q</span> <span class="o">+=</span> <span class="n">conmat</span><span class="p">([</span>
+            <span class="c1"># double bounded, degenerate at upper</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_deg&#39;</span><span class="p">]),</span>
+            <span class="c1"># double bounded, nonactive at upper</span>
+            <span class="o">-</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_nonactive&#39;</span><span class="p">]),</span>
+            <span class="c1"># double bounded, degenerate at lower</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_deg&#39;</span><span class="p">]),</span>
+            <span class="c1"># double bounded, nonactive at lower</span>
+            <span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_nonactive&#39;</span><span class="p">]),</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_float&#39;</span><span class="p">]),</span>         <span class="c1"># double bounded, floating</span>
+            <span class="c1"># single bounded, degenerate at lower</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_deg&#39;</span><span class="p">]),</span>
+            <span class="c1"># single bounded, nonactive at lower</span>
+            <span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_nonactive&#39;</span><span class="p">]),</span>
+            <span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_active&#39;</span><span class="p">])])</span>       <span class="c1"># single bounded, floating</span>
+
+        <span class="c1">#########################################</span>
+        <span class="c1">##        For later convenience        ##</span>
+        <span class="c1">#########################################</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">N</span> <span class="o">*</span> <span class="n">xgen</span> <span class="o">+</span> <span class="n">M</span> <span class="o">*</span> <span class="n">ygen</span> <span class="o">+</span> <span class="n">q</span>
+
+        <span class="n">mix_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;mix_deg&#39;</span><span class="p">]</span>
+        <span class="n">tol_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;tol_deg&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Calculate three index sets alpha, beta and gamma at (xgen, ygen).</span>
+        <span class="c1"># alpha denotes the index set of i at which F(i) is active, but y(i) not.</span>
+        <span class="c1"># beta_upp and beta_low denote the index sets of i at which F(i) is</span>
+        <span class="c1"># active, and y(i) is active at the upper and the lower end point of</span>
+        <span class="c1"># the finite interval [0, u] respectively.</span>
+        <span class="c1"># beta_inf denotes the index set of i at which both F(i) and y(i) are</span>
+        <span class="c1"># active for the infinite interval [0, inf).</span>
+        <span class="c1"># gamma_upp and gamma_low denote the index sets of i at which F(i) is</span>
+        <span class="c1"># not active, but y(i) is active at the upper and the lower point of</span>
+        <span class="c1"># the finite interval [0, u] respectively.</span>
+        <span class="c1"># gamma_inf denotes the index set of i at which F(i) is not active, but y(i)</span>
+        <span class="c1"># is active for the infinite interval [0, inf).</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">md</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">tol_deg</span> <span class="ow">and</span> <span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">tol_deg</span><span class="p">,</span> \
+                <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> not in [0, </span><span class="si">{1}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">tol_deg</span> <span class="ow">and</span> <span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">tol_deg</span> <span class="ow">and</span> <span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">tol_deg</span> <span class="o">&lt;</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># For the index set alpha.</span>
+            <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">tol_deg</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">tol_deg</span><span class="p">:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># For the index set beta_upp.</span>
+            <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">tol_deg</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">tol_deg</span><span class="p">:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># For the index set beta_low.</span>
+            <span class="k">elif</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">tol_deg</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">tol_deg</span><span class="p">:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># For the index set gamma_upp.</span>
+            <span class="k">elif</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">tol_deg</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">tol_deg</span><span class="p">:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># For the index set gamma_low.</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">((</span><span class="s2">&quot;didn&#39;t know what to do with this case: &quot;</span>
+                                 <span class="s2">&quot;ygen=</span><span class="si">{0}</span><span class="s2">, u[i] = </span><span class="si">{1}</span><span class="s2">, F[i]=</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                     <span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">tol_deg</span><span class="p">:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># For the index set alpha.</span>
+            <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ygen</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">tol_deg</span><span class="p">:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># For the index set beta_inf.</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># For the index set gamma_inf.</span>
+
+        <span class="c1"># Generate the first level multipliers   pi    sigma</span>
+        <span class="c1"># associated with other constraints other than the first level constraints</span>
+        <span class="c1"># A*[x;y]+a&lt;=0   in the relaxed nonlinear program. In particular,</span>
+        <span class="c1"># pi            is associated with  F(x, y)=N*x+M*y+q, and</span>
+        <span class="c1"># sigma                       with  y.</span>
+        <span class="n">mix_upp_deg</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="n">mix_deg</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_deg&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_deg&#39;</span><span class="p">],</span>
+            <span class="n">choose_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_upp_deg&#39;</span><span class="p">]))</span>
+        <span class="n">mix_upp_deg</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">mix_upp_deg</span><span class="p">,</span> <span class="n">mix_deg</span><span class="p">)</span>
+
+        <span class="n">mix_low_deg</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="n">mix_deg</span> <span class="o">-</span> <span class="n">mix_upp_deg</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms_deg&#39;</span><span class="p">],</span>
+            <span class="n">choose_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md_low_deg&#39;</span><span class="p">]))</span>
+        <span class="n">mix_low_deg</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">mix_low_deg</span><span class="p">,</span> <span class="n">mix_deg</span> <span class="o">-</span> <span class="n">mix_upp_deg</span><span class="p">)</span>
+
+        <span class="n">mix_inf_deg</span> <span class="o">=</span> <span class="n">mix_deg</span> <span class="o">-</span> <span class="n">mix_upp_deg</span> <span class="o">-</span> <span class="n">mix_low_deg</span>
+        <span class="n">mix_inf_deg</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">mix_inf_deg</span><span class="p">,</span> <span class="n">mix_deg</span> <span class="o">-</span> <span class="n">mix_upp_deg</span> <span class="o">-</span> <span class="n">mix_inf_deg</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">mix_deg</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">mix_upp_deg</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">mix_low_deg</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">mix_inf_deg</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+<span class="c1">#        assert self.param[&#39;second_deg&#39;] == self.info[&#39;ms_deg&#39;] +</span>
+<span class="c1">#               self.info[&#39;md_low_deg&#39;] + self.info[&#39;md_upp_deg&#39;] + mix_deg</span>
+        <span class="n">k_mix_inf</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">k_mix_upp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">k_mix_low</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">pi</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">randcst</span><span class="p">()</span> <span class="o">-</span> <span class="n">randcst</span><span class="p">()</span>
+                <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">elif</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">k_mix_upp</span> <span class="o">&lt;</span> <span class="n">mix_upp_deg</span><span class="p">:</span>
+                    <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="c1"># The first mix_upp_deg constraints associated with F(i)&lt;=0</span>
+                    <span class="c1"># in the set beta_upp are degenerate.</span>
+                    <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="c1"># The first mix_upp_deg constraints associated with</span>
+                    <span class="c1"># y(i)&lt;=u(i) in the set beta_upp are degenerate.</span>
+                    <span class="n">k_mix_upp</span> <span class="o">=</span> <span class="n">k_mix_upp</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">randcst</span><span class="p">()</span>
+                    <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">randcst</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">k_mix_low</span> <span class="o">&lt;</span> <span class="n">mix_low_deg</span><span class="p">:</span>
+                    <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="c1"># The first mix_low_deg constraints associated with F(i)&gt;=0</span>
+                    <span class="c1"># in the set beta_low are degenerate.</span>
+                    <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="c1"># The first mix_low_deg constraints associated with</span>
+                    <span class="c1"># y(i)&gt;=0 in the set beta_low are degenerate.</span>
+                    <span class="n">k_mix_low</span> <span class="o">=</span> <span class="n">k_mix_low</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">randcst</span><span class="p">()</span>
+                    <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">randcst</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">k_mix_inf</span> <span class="o">&lt;</span> <span class="n">mix_inf_deg</span><span class="p">:</span>
+                    <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="c1"># The first mix_inf_deg constraints associated with F(i)&gt;=0</span>
+                    <span class="c1"># in the set beta_inf are degenerate.</span>
+                    <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="c1"># The first mix_inf_deg constraints associated with</span>
+                    <span class="c1"># y(i)&gt;=0 in the set beta_inf are degenerate.</span>
+                    <span class="n">k_mix_inf</span> <span class="o">=</span> <span class="n">k_mix_inf</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">randcst</span><span class="p">()</span>
+                    <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">randcst</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">randcst</span><span class="p">()</span> <span class="o">-</span> <span class="n">randcst</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">q</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;F&#39;</span><span class="p">:</span> <span class="n">F</span><span class="p">,</span>
+            <span class="s1">&#39;mix_upp_deg&#39;</span><span class="p">:</span> <span class="n">mix_upp_deg</span><span class="p">,</span>
+            <span class="s1">&#39;mix_low_deg&#39;</span><span class="p">:</span> <span class="n">mix_low_deg</span><span class="p">,</span>
+            <span class="s1">&#39;mix_inf_deg&#39;</span><span class="p">:</span> <span class="n">mix_inf_deg</span><span class="p">,</span>
+            <span class="s1">&#39;pi&#39;</span><span class="p">:</span> <span class="n">pi</span><span class="p">,</span>
+            <span class="s1">&#39;sigma&#39;</span><span class="p">:</span> <span class="n">sigma</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">_make_c_d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="c1"># Generate coefficients of the linear part of the objective</span>
+        <span class="c1"># Generate c and d such that (xgen, ygen) satisfies KKT conditions</span>
+        <span class="c1"># of AVI-MPEC as well as the first level degeneracy.</span>
+        <span class="n">Px</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_Px</span><span class="p">()</span>
+        <span class="n">Pxy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_Pxy</span><span class="p">()</span>
+        <span class="n">Py</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_Py</span><span class="p">()</span>
+        <span class="n">xgen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">]</span>
+        <span class="n">ygen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">]</span>
+        <span class="n">pi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pi&#39;</span><span class="p">]</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;sigma&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">Px</span> <span class="o">*</span> <span class="n">xgen</span> <span class="o">+</span> <span class="n">Pxy</span> <span class="o">*</span> <span class="n">ygen</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">pi</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">Pxy</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">xgen</span> <span class="o">+</span> <span class="n">Py</span> <span class="o">*</span> <span class="n">ygen</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">+</span> <span class="n">sigma</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">+=</span> <span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">[:,</span> <span class="p">:</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ulambda&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">+=</span> <span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">[:,</span> <span class="n">n</span><span class="p">:</span><span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ulambda&#39;</span><span class="p">])</span>
+        <span class="c1"># ELEPHANT reinstate later</span>
+<span class="c1">#        self.info[&#39;optval&#39;] = (0.5*(self.info[&#39;optsol&#39;].T)*self.P*self.info[&#39;optsol&#39;]</span>
+<span class="c1">#                          +conmat([self.c, self.d]).T*self.info[&#39;optsol&#39;])[0,0]</span>
+
+<div class="viewcode-block" id="Qpecgen200.make_QPCC_sol"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.box.Qpecgen200.make_QPCC_sol">[docs]</a>    <span class="k">def</span> <span class="nf">make_QPCC_sol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">lamDL</span><span class="p">,</span> <span class="n">lamS</span><span class="p">,</span> <span class="n">lamDU</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dual_vals</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;lamDL&#39;</span><span class="p">:</span> <span class="n">lamDL</span><span class="p">,</span>
+            <span class="s1">&#39;lamS&#39;</span><span class="p">:</span> <span class="n">lamS</span><span class="p">,</span>
+            <span class="s1">&#39;lamDU&#39;</span><span class="p">:</span> <span class="n">lamDU</span><span class="p">})</span>
+
+        <span class="n">gensol</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ygen&#39;</span><span class="p">],</span>
+            <span class="n">lamDL</span><span class="p">,</span>
+            <span class="n">lamS</span><span class="p">,</span>
+            <span class="n">lamDU</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">gensol</span></div>
+
+<div class="viewcode-block" id="Qpecgen200.get_dual_vals"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.box.Qpecgen200.get_dual_vals">[docs]</a>    <span class="k">def</span> <span class="nf">get_dual_vals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the values of the lower level problem&#39;s dual variables</span>
+<span class="sd">        vectors at the given solution (x, y).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">           x, y: an optimal solution to the QPEC.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">           :math:`\lambda_D^L`: vector of dual variable values for the</span>
+<span class="sd">           constraints :math:`y_D \geq 0`</span>
+
+<span class="sd">           :math:`\lambda_S`: vector of dual variable values for the</span>
+<span class="sd">           constraints :math:`y_S \geq 0`</span>
+
+<span class="sd">           :math:`\lambda_D^U`: vector of dual variable values for the</span>
+<span class="sd">           constraints :math:`y_D \leq y_u`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># computing the full sol at xgen, ygen</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">]</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms&#39;</span><span class="p">]</span>
+        <span class="n">lamDL</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">)</span>
+        <span class="n">lamDU</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">)</span>
+        <span class="n">lamS</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
+        <span class="n">ETlambda</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">*</span> <span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">M</span> <span class="o">*</span> <span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span>
+
+        <span class="k">assert</span> <span class="n">ms</span> <span class="o">+</span> <span class="n">md</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ETlambda</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">md</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">ETlambda</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">lamDL</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+                <span class="n">lamDU</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ETlambda</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lamDL</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">ETlambda</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">lamDU</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+<span class="c1">#            assert lamDL[i] - lamDU[i] == ETlambda[i]</span>
+
+<span class="c1">#        print lamS</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ms</span><span class="p">):</span>
+            <span class="n">lamS</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">ETlambda</span><span class="p">[</span><span class="n">md</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span>
+<span class="c1">#            assert lamS[i] == ETlambda[md+i]</span>
+<span class="c1">#            assert lamS[i] &gt;= 0, &quot;if this goes wrong it&#39;s because this part of</span>
+<span class="c1">#                   q wasn&#39;t generated right!&quot;</span>
+<span class="c1">#        E1 = conmat([eye(md), zeros(md, ms), -eye(md)], option=&#39;h&#39;)</span>
+<span class="c1">#        E2 = conmat([zeros(ms, md), eye(ms), zeros(ms, md)], option=&#39;h&#39;)</span>
+<span class="c1">#        lam = conmat([lamDL, lamS, lamDU])</span>
+<span class="c1">#        ETlambda1 = conmat([E1, E2])*lam</span>
+<span class="c1">#        assert np.allclose(ETlambda1, ETlambda), &quot;{0} {1}&quot;.format(ETlambda1, ETlambda)</span>
+        <span class="k">return</span> <span class="n">lamDL</span><span class="p">,</span> <span class="n">lamS</span><span class="p">,</span> <span class="n">lamDU</span></div>
+
+<div class="viewcode-block" id="Qpecgen200.return_problem"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.box.Qpecgen200.return_problem">[docs]</a>    <span class="k">def</span> <span class="nf">return_problem</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">           (None)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">           problem: a dictionary with keys ``P``, ``c``, ``d``, ``A``, ``a``,</span>
+<span class="sd">           ``u``, ``N``, ``M``, ``q`` defining the</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">problem</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">,</span>
+            <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
+            <span class="s1">&#39;d&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="p">,</span>
+            <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span>
+            <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span>
+            <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">,</span>
+            <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,</span>
+            <span class="s1">&#39;M&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="p">,</span>
+            <span class="s1">&#39;q&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">problem</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span></div>
+
+<div class="viewcode-block" id="Qpecgen200.export_QPCC_data"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.box.Qpecgen200.export_QPCC_data">[docs]</a>    <span class="k">def</span> <span class="nf">export_QPCC_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">P</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_problem</span><span class="p">()</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">]</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ms&#39;</span><span class="p">]</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span>
+
+        <span class="n">varsused</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">)</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="n">create_name</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="n">create_name</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="n">create_name</span><span class="p">(</span><span class="s2">&quot;lamL&quot;</span><span class="p">,</span> <span class="n">md</span><span class="p">)</span> <span class="o">+</span> <span class="n">create_name</span><span class="p">(</span><span class="s2">&quot;lamL&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">md</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="n">create_name</span><span class="p">(</span><span class="s2">&quot;lamU&quot;</span><span class="p">,</span> <span class="n">md</span><span class="p">)</span>
+
+        <span class="n">objQ</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">([</span>
+            <span class="p">[</span><span class="n">matrix</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;P&#39;</span><span class="p">]),</span> <span class="n">matrix</span><span class="p">(</span><span class="n">zeros</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">))],</span>
+            <span class="p">[</span><span class="n">matrix</span><span class="p">(</span><span class="n">zeros</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">)),</span> <span class="n">matrix</span><span class="p">(</span><span class="n">zeros</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">))]])</span>
+        <span class="n">objp</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">],</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">],</span> <span class="n">zeros</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">)])</span>
+
+        <span class="n">objr</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">G1</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">],</span> <span class="n">zeros</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="o">-</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+
+        <span class="n">G2</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="o">-</span><span class="n">eye</span><span class="p">(</span><span class="n">md</span><span class="p">),</span> <span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">m</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">)</span>
+
+        <span class="n">G3</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">eye</span><span class="p">(</span><span class="n">md</span><span class="p">),</span> <span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">m</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">h3</span> <span class="o">=</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span>
+
+        <span class="n">G4</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="n">zeros</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">md</span><span class="p">),</span> <span class="o">-</span><span class="n">eye</span><span class="p">(</span><span class="n">ms</span><span class="p">),</span>
+                     <span class="n">zeros</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">h4</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
+
+        <span class="n">G5</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="n">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">),</span> <span class="o">-</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="n">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">md</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">h5</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+
+        <span class="n">G6</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">m</span><span class="p">),</span> <span class="o">-</span><span class="n">eye</span><span class="p">(</span><span class="n">md</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">h6</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Qpecgen201</span><span class="p">):</span>
+            <span class="n">G7</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="o">-</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+            <span class="n">h7</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xl&#39;</span><span class="p">]</span>
+
+            <span class="n">G8</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">([</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">m</span> <span class="o">+</span> <span class="n">md</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+            <span class="n">h8</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xu&#39;</span><span class="p">]</span>
+
+        <span class="n">A1</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">][:</span><span class="n">md</span><span class="p">],</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;M&#39;</span><span class="p">][:</span><span class="n">md</span><span class="p">],</span> <span class="o">-</span><span class="n">eye</span><span class="p">(</span><span class="n">md</span><span class="p">),</span> <span class="n">zeros</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="n">ms</span><span class="p">),</span> <span class="n">eye</span><span class="p">(</span><span class="n">md</span><span class="p">)],</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="o">-</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;q&#39;</span><span class="p">][:</span><span class="n">md</span><span class="p">]</span>
+
+        <span class="n">A2</span> <span class="o">=</span> <span class="n">conmat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">][</span><span class="n">md</span><span class="p">:],</span> <span class="n">P</span><span class="p">[</span><span class="s1">&#39;M&#39;</span><span class="p">][</span><span class="n">md</span><span class="p">:],</span> <span class="n">zeros</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">md</span><span class="p">),</span> <span class="o">-</span><span class="n">eye</span><span class="p">(</span><span class="n">ms</span><span class="p">),</span> <span class="n">zeros</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">md</span><span class="p">)],</span>
+            <span class="n">option</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">b2</span> <span class="o">=</span> <span class="o">-</span><span class="n">P</span><span class="p">[</span><span class="s1">&#39;q&#39;</span><span class="p">][</span><span class="n">md</span><span class="p">:]</span>
+
+        <span class="n">details</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;varsused&#39;</span><span class="p">:</span> <span class="n">varsused</span><span class="p">,</span>
+            <span class="s1">&#39;geninfo&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">,</span>
+            <span class="s1">&#39;genparam&#39;</span><span class="p">:</span> <span class="n">param</span><span class="p">,</span>
+            <span class="s1">&#39;gensol&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_QPCC_sol</span><span class="p">()}</span>
+
+        <span class="k">return</span> <span class="nb">locals</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="Qpecgen201"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.box.Qpecgen201">[docs]</a><span class="k">class</span> <span class="nc">Qpecgen201</span><span class="p">(</span><span class="n">Qpecgen200</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This subclass of ``qpecgen.box.Qpecgen200`` generates a more specific type</span>
+<span class="sd">    of BOX-QPEC problem known as the FULL-BOX-QPEC.  Type 201 is a more</span>
+<span class="sd">    specific case of type 200 where x variables are constrained</span>
+<span class="sd">    :math:`x_l \leq x \leq x_u` and y variables are constrained</span>
+<span class="sd">    :math:`0 \leq y \leq y_u \leq 10` for integers :math:`x_l \in [-10, 0]`,</span>
+<span class="sd">    :math:`x_u \in [1, 10]`, :math:`y_u \in [1, 10]`.</span>
+
+<span class="sd">    Some class methods (not shown here due to private status) are overridden</span>
+<span class="sd">    for this class so that problems are generated with the full box structure.</span>
+<span class="sd">    Methods for</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pname</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Qpecgen201</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">pname</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">qpec_type</span><span class="o">=</span><span class="mi">201</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_make_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span>
+        <span class="n">second_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Note that we only consider the following two cases of box constraints:</span>
+        <span class="c1"># y(i) in [0, +inf) or  [0, u] where u is a nonnegative scalar.</span>
+        <span class="c1"># Clearly, any other interval can be obtained by using the mapping</span>
+        <span class="c1"># y &lt;--- c1+c2*y.</span>
+        <span class="c1"># It is assumed that the last m_inf constraints are of the form [0, inf)</span>
+        <span class="c1"># The remaining m_inf - m_inf_deg - inf_nonactive constraints are where</span>
+        <span class="c1"># F=0, y&gt;0</span>
+
+        <span class="c1"># y variables which are bounded below and above</span>
+        <span class="c1"># There will be m - m_inf variables with double sided bounds. each upper</span>
+        <span class="c1"># bound is chosen uniform in [0,10]</span>
+        <span class="n">md_upp_deg</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">second_deg</span><span class="p">)</span>
+        <span class="c1"># degenerate with y at upper bound: F=0, y=u</span>
+        <span class="n">md_low_deg</span> <span class="o">=</span> <span class="n">second_deg</span> <span class="o">-</span> <span class="n">md_upp_deg</span>
+        <span class="c1"># degenerate with y at lower bound: F=0, y=0</span>
+        <span class="n">md_upp_nonactive</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">md</span> <span class="o">-</span> <span class="n">md_upp_deg</span> <span class="o">-</span> <span class="n">md_low_deg</span><span class="p">)</span>
+        <span class="c1"># F not active, y at upper bound: F&lt;0, y=u</span>
+        <span class="n">md_low_nonactive</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span>
+            <span class="n">md</span> <span class="o">-</span> <span class="n">md_upp_deg</span> <span class="o">-</span> <span class="n">md_low_deg</span> <span class="o">-</span> <span class="n">md_upp_nonactive</span><span class="p">)</span>
+        <span class="c1"># F not active, y at lower bound: F&gt;0, y=0</span>
+
+        <span class="n">l_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;first_deg&#39;</span><span class="p">]</span>
+        <span class="n">l_nonactive</span> <span class="o">=</span> <span class="n">choose_num</span><span class="p">(</span><span class="n">l</span> <span class="o">-</span> <span class="n">l_deg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;ms&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;ms_deg&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;ms_nonactive&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;ms_active&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;md&#39;</span><span class="p">:</span> <span class="n">md</span><span class="p">,</span>
+            <span class="s1">&#39;md_upp_deg&#39;</span><span class="p">:</span> <span class="n">md_upp_deg</span><span class="p">,</span>
+            <span class="s1">&#39;md_low_deg&#39;</span><span class="p">:</span> <span class="n">md_low_deg</span><span class="p">,</span>
+            <span class="s1">&#39;md_upp_nonactive&#39;</span><span class="p">:</span> <span class="n">md_upp_nonactive</span><span class="p">,</span>
+            <span class="s1">&#39;md_low_nonactive&#39;</span><span class="p">:</span> <span class="n">md_low_nonactive</span><span class="p">,</span>
+            <span class="s1">&#39;md_float&#39;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">md</span> <span class="o">-</span> <span class="n">md_upp_deg</span> <span class="o">-</span> <span class="n">md_low_deg</span> <span class="o">-</span> <span class="n">md_upp_nonactive</span> <span class="o">-</span> <span class="n">md_low_nonactive</span><span class="p">),</span>
+            <span class="c1"># Randomly decide how many of the non-degenerate first level ctrs</span>
+            <span class="c1"># should be nonactive</span>
+            <span class="s1">&#39;l&#39;</span><span class="p">:</span> <span class="n">l</span><span class="p">,</span>
+            <span class="s1">&#39;l_deg&#39;</span><span class="p">:</span> <span class="n">l_deg</span><span class="p">,</span>
+            <span class="s1">&#39;l_nonactive&#39;</span><span class="p">:</span> <span class="n">l_nonactive</span><span class="p">,</span>
+            <span class="s1">&#39;l_active&#39;</span><span class="p">:</span> <span class="n">l</span> <span class="o">-</span> <span class="n">l_deg</span> <span class="o">-</span> <span class="n">l_nonactive</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">_make_xgen</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">xl</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">])</span>
+        <span class="n">xu</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npvec</span><span class="p">(</span><span class="n">xl</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xu&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npvec</span><span class="p">(</span><span class="n">xu</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;xgen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npvec</span><span class="p">(</span>
+            <span class="p">[(</span><span class="n">xl</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">xu</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">xl</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">randcst</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">])])</span>
+<span class="c1">#        raise Exception(xl, xu, self.info[&#39;xgen&#39;])</span>
+
+    <span class="k">def</span> <span class="nf">_make_u</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;md&#39;</span><span class="p">])</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Trish Gillett-Kawamoto.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

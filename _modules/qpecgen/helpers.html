@@ -1,0 +1,547 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>qpecgen.helpers &mdash; PyQPECgen 0.1.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="PyQPECgen 0.1.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> PyQPECgen
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/qpecgen.html">qpecgen package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">PyQPECgen</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>qpecgen.helpers</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for qpecgen.helpers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># pylint: disable=E1101</span>
+<span class="c1">#</span>
+<span class="c1"># qpecgen/helpers.py</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (c) 2016 Trish Gillett-Kawamoto</span>
+<span class="c1">#</span>
+<span class="c1"># This software is released under the MIT License.</span>
+<span class="c1">#</span>
+<span class="c1"># http://opensource.org/licenses/mit-license.php</span>
+<span class="c1">#</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">scipy.linalg</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+<div class="viewcode-block" id="jit"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.jit">[docs]</a>    <span class="k">def</span> <span class="nf">jit</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">_kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;__call__&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">func</span>
+            <span class="k">return</span> <span class="n">_</span></div>
+
+<span class="nd">@jit</span><span class="p">(</span><span class="s2">&quot;b1(f8[:,:])&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_is_diagonal</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Check a given matrix is a diagonal matrix.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      M: Matrix.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      True if the given matrix is a diagonal matrix.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if the given matrix is not square.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;M is not square.&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span> <span class="ow">and</span> <span class="n">M</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
+<div class="viewcode-block" id="choose_num"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.choose_num">[docs]</a><span class="k">def</span> <span class="nf">choose_num</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Chooses a number between 0 and m, inclusive.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">elif</span> <span class="n">m</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;A negative value was given to choose_num: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">))</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<span class="nd">@jit</span><span class="p">(</span><span class="s2">&quot;f8[:,:](i8, i8)&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="rand"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.rand">[docs]</a><span class="k">def</span> <span class="nf">rand</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convenience function to create an m by n numpy matrix with each element</span>
+<span class="sd">    distributed Uniform(0,1).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">)))</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="randcst"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.randcst">[docs]</a><span class="k">def</span> <span class="nf">randcst</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convenience function to get a single Uniform(0,1) value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="randint"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.randint">[docs]</a><span class="k">def</span> <span class="nf">randint</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convenience function to create an m by n numpy matrix with each element</span>
+<span class="sd">    distributed Discrete Uniform in [low, high]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mf">1.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random_integers</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">high</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<span class="nd">@jit</span><span class="p">(</span><span class="s2">&quot;f8[:,:](i8, i8)&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="zeros"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.zeros">[docs]</a><span class="k">def</span> <span class="nf">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convenience function to create an m by n matrix of all zeroes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">)))</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="ones"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.ones">[docs]</a><span class="k">def</span> <span class="nf">ones</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convenience function to create an m by n matrix of all ones.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">)))</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<span class="nd">@jit</span><span class="p">(</span><span class="s2">&quot;f8[:,:](i8)&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="eye"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.eye">[docs]</a><span class="k">def</span> <span class="nf">eye</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convenience function for an n by n identity matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">n</span><span class="p">))</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="conmat"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.conmat">[docs]</a><span class="k">def</span> <span class="nf">conmat</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;v&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Concatenates the matrices L[1]... L[n] into one matrix, arranging them</span>
+<span class="sd">    horizontally if option=&#39;h&#39; and vertically if option=&#39;v&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">option</span> <span class="o">==</span> <span class="s1">&#39;v&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">L</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">option</span> <span class="o">==</span> <span class="s1">&#39;h&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">L</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;option must be one of the &#39;v&#39; and &#39;h&#39;.&quot;</span><span class="p">)</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<span class="c1"># ELEPHANT CAN WE ELIMINATE THE NEED FOR THIS</span>
+<div class="viewcode-block" id="npvec"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.npvec">[docs]</a><span class="k">def</span> <span class="nf">npvec</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convenience function to make sure x is a vertical vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<span class="nd">@jit</span><span class="p">(</span><span class="s2">&quot;f8(f8[:,:])&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="mindiag"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.mindiag">[docs]</a><span class="k">def</span> <span class="nf">mindiag</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the value of the smallest diagonal entry of the matrix M</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">)):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">M</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="maxdiag"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.maxdiag">[docs]</a><span class="k">def</span> <span class="nf">maxdiag</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the value of the largest diagonal entry of the matrix M</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">mindiag</span><span class="p">(</span><span class="o">-</span><span class="n">M</span><span class="p">)</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="randdiag"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.randdiag">[docs]</a><span class="k">def</span> <span class="nf">randdiag</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates an n by n matrix with Uniform(0,1) random numbers on the diag</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">M</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">randcst</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">M</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="reconstruct"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.reconstruct">[docs]</a><span class="k">def</span> <span class="nf">reconstruct</span><span class="p">(</span><span class="n">MU</span><span class="p">,</span> <span class="n">MD</span><span class="p">,</span> <span class="n">MV</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the matrix product MU*MD*MV.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">MU</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">MD</span><span class="p">,</span> <span class="n">MV</span><span class="p">))</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="schur"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.schur">[docs]</a><span class="k">def</span> <span class="nf">schur</span><span class="p">(</span><span class="n">P</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;g variables in the</span>
+<span class="sd">    same order as matlab&#39;s schur decomp to make it easy to verify my</span>
+<span class="sd">    translation from matlab to python.</span>
+<span class="sd">    Simulates matlab&#39;s schur decomposition function, returning PU, PD, PV</span>
+<span class="sd">    s.t. np.dot(PU, np.dot(PD, PV))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">PD</span><span class="p">,</span> <span class="n">PU</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">schur</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">PD</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])):</span>   <span class="c1"># make all non-diagonal elements 0.</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">PD</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])):</span>
+            <span class="n">PD</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">PD</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">return</span> <span class="n">PU</span><span class="p">,</span> <span class="n">PD</span><span class="p">,</span> <span class="n">PU</span><span class="o">.</span><span class="n">T</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="svd"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.svd">[docs]</a><span class="k">def</span> <span class="nf">svd</span><span class="p">(</span><span class="n">P</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper for singular value decomposition, returning PU, PD, PV s.t.</span>
+<span class="sd">    P = np.dot(PU, np.dot(PD, PV)).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">[</span><span class="n">PU</span><span class="p">,</span> <span class="n">pd</span><span class="p">,</span> <span class="n">PV</span><span class="p">]</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+    <span class="n">PD</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">diagsvd</span><span class="p">(</span><span class="n">pd</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pd</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">pd</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">PU</span><span class="p">,</span> <span class="n">PD</span><span class="p">,</span> <span class="n">PV</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="adjust_cond"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.adjust_cond">[docs]</a><span class="k">def</span> <span class="nf">adjust_cond</span><span class="p">(</span><span class="n">PU</span><span class="p">,</span> <span class="n">PD</span><span class="p">,</span> <span class="n">PV</span><span class="p">,</span> <span class="n">cond</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Constructs the matrix PU*PD*PV after adjusting its condition number to be</span>
+<span class="sd">    cond.</span>
+
+<span class="sd">    This will throw an error if PD is a multiple of the identity matrix because</span>
+<span class="sd">    the condition number in that case is always 1 and this adjustment doesn&#39;t</span>
+<span class="sd">    change that.</span>
+
+<span class="sd">    PD also must be a diagonal matrix. If not, raise ValueError.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mindiag</span><span class="p">(</span><span class="n">PD</span><span class="p">)</span> <span class="o">==</span> <span class="n">maxdiag</span><span class="p">(</span><span class="n">PD</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;A multiple of the identity matrix can&#39;t adjustment condition number.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_diagonal</span><span class="p">(</span><span class="n">PD</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;PD must be a diagonal matrix.&quot;</span><span class="p">)</span>
+
+    <span class="n">size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">PD</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">ccond</span> <span class="o">=</span> <span class="p">(</span><span class="n">cond</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">mindiag</span><span class="p">(</span><span class="n">PD</span><span class="p">)</span><span class="o">*</span><span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="n">maxdiag</span><span class="p">(</span><span class="n">PD</span><span class="p">)</span><span class="o">-</span><span class="n">mindiag</span><span class="p">(</span><span class="n">PD</span><span class="p">))</span>
+    <span class="n">PD</span> <span class="o">=</span> <span class="n">ccond</span><span class="o">*</span><span class="n">PD</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">ccond</span><span class="p">)</span><span class="o">*</span><span class="n">mindiag</span><span class="p">(</span><span class="n">PD</span><span class="p">)</span><span class="o">*</span><span class="n">eye</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reconstruct</span><span class="p">(</span><span class="n">PU</span><span class="p">,</span> <span class="n">PD</span><span class="p">,</span> <span class="n">PV</span><span class="p">)</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="tweak_diag"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.tweak_diag">[docs]</a><span class="k">def</span> <span class="nf">tweak_diag</span><span class="p">(</span><span class="n">MD</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes a square matrix MD, shifts every diagonal element so that the</span>
+<span class="sd">    smallest diagonal value is 0, and then adds a Uniform(0,1) value to each</span>
+<span class="sd">    diagonal element.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">MD</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">MD</span> <span class="o">-</span> <span class="n">mindiag</span><span class="p">(</span><span class="n">MD</span><span class="p">)</span><span class="o">*</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="n">randdiag</span><span class="p">(</span><span class="n">m</span><span class="p">)</span></div>
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="gen_general_obj"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.gen_general_obj">[docs]</a><span class="k">def</span> <span class="nf">gen_general_obj</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">convex</span><span class="p">,</span> <span class="n">cond</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+    <span class="c1">## Generate the quadratic terms of objective function.</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">P</span><span class="o">+</span><span class="n">P</span><span class="o">.</span><span class="n">T</span>        <span class="c1">## P is symmetric.</span>
+    <span class="k">if</span> <span class="n">convex</span><span class="p">:</span>    <span class="c1">## Convex case.</span>
+        <span class="n">PU</span><span class="p">,</span> <span class="n">PD</span><span class="p">,</span> <span class="n">PV</span> <span class="o">=</span> <span class="n">schur</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+        <span class="c1">## Schur decomposition. PD is diagonal since P is symmetric.</span>
+        <span class="n">PD</span> <span class="o">=</span> <span class="n">tweak_diag</span><span class="p">(</span><span class="n">PD</span><span class="p">)</span>
+        <span class="c1">## PD will be nonnegative.  subtract something to make the smallest</span>
+        <span class="c1">## singular value 0, then add (uniform) random numbers to each</span>
+    <span class="k">else</span><span class="p">:</span>    <span class="c1">## Nonconvex case</span>
+        <span class="n">PU</span><span class="p">,</span> <span class="n">PD</span><span class="p">,</span> <span class="n">PV</span> <span class="o">=</span> <span class="n">svd</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>  <span class="c1">## Singular value decomposition.</span>
+    <span class="c1"># for both convex and nonconvex, we adjust the condition number,</span>
+    <span class="c1"># reassemble the matrix, and scale if necessary.</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">adjust_cond</span><span class="p">(</span><span class="n">PU</span><span class="p">,</span> <span class="n">PD</span><span class="p">,</span> <span class="n">PV</span><span class="p">,</span> <span class="n">cond</span><span class="p">)</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span><span class="o">*</span><span class="n">scale</span><span class="o">/</span><span class="n">cond</span><span class="p">)</span><span class="o">*</span><span class="n">P</span>   <span class="c1">## Rescale P when cond_P is large.</span>
+    <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">P</span><span class="o">+</span><span class="n">P</span><span class="o">.</span><span class="n">T</span><span class="p">)</span></div>
+
+
+<span class="c1">#=============================================================================#</span>
+
+<div class="viewcode-block" id="sanitize_params"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.sanitize_params">[docs]</a><span class="k">def</span> <span class="nf">sanitize_params</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">qpec_type</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="c1"># Check type value and objective related stuff.</span>
+    <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;cond_P&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: cond_P should not be less than 1. </span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;cond_P&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="nb">print</span> <span class="s1">&#39;cond_P set to 20.</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;convex_f&#39;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: Wrong data for convex_f.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;convex_f&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="nb">print</span> <span class="s1">&#39;convex_f set to True.</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;symm_M&#39;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: Wrong data for symm_M.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;symm_M&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="nb">print</span> <span class="s1">&#39;symm_M set to True.</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;mono_M&#39;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: Wrong data for mono_M.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;mono_M&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="nb">print</span> <span class="s1">&#39;mono_M set to True.</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;cond_M&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: cond_M should not be less than 1.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;cond_M&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="nb">print</span> <span class="s1">&#39;cond_M set to 10.</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+    <span class="c1"># These params take their default values from other params</span>
+    <span class="k">if</span> <span class="s1">&#39;scale_P&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">param</span> <span class="ow">or</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;scale_P&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: No value or invalid value given for scale_P.&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;scale_P&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;cond_P&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;scale_P set equal to cond_P.</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="s1">&#39;scale_M&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">param</span> <span class="ow">or</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;scale_M&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: No value or invalid value given for scale_M.&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;scale_M&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;cond_M&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;scale_M set equal to cond_M.</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="s1">&#39;p&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">param</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: No value for p.&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;p set equal to m.</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+    <span class="c1"># Type specific checks</span>
+    <span class="k">if</span> <span class="n">qpec_type</span> <span class="o">==</span> <span class="mi">100</span> <span class="ow">and</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: second_deg should not be greater than p.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;second_deg = p</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">qpec_type</span> <span class="o">&gt;=</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">qpec_type</span> <span class="o">&lt;=</span> <span class="mi">300</span><span class="p">)</span> <span class="ow">and</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: second_deg should not be greater than m.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;second_deg set equal to m.</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">elif</span> <span class="n">qpec_type</span> <span class="o">&gt;=</span> <span class="mi">800</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s2">&quot;Warning: l must be equal to 0 for this type.&quot;</span>
+            <span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]:</span>
+            <span class="nb">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1"> The dimensions have been changed: n set equal to m</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="n">param</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Check params controlling constraint structure</span>
+    <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;first_deg&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: first_deg should not be greater than l.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;first_deg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;first_deg = l</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;mix_deg&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: mix_deg should not be greater than second_deg.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;mix_deg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;second_deg&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;mix_deg set equal to second_deg</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;yinfirstlevel&#39;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: yinfirstlevel should be True or False.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;yinfirstlevel&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="nb">print</span> <span class="s1">&#39;yinfirstlevel set to True.</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+    <span class="c1"># Check params controlling output format</span>
+    <span class="k">if</span> <span class="s1">&#39;make_with_dbl_comps&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">param</span><span class="p">:</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;make_with_dbl_comps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">elif</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;make_with_dbl_comps&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span><span class="n">qpec_type</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">or</span> <span class="n">qpec_type</span> <span class="o">==</span> <span class="mi">201</span><span class="p">):</span>
+        <span class="nb">print</span> <span class="s1">&#39;Warning: the problem type selected does not result in double comps.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;make_with_dbl_comps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="nb">print</span> <span class="s1">&#39;make_with_dbl_comps set to False.</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+    <span class="k">return</span> <span class="n">param</span></div>
+
+
+<div class="viewcode-block" id="create_name"><a class="viewcode-back" href="../../modules/qpecgen.html#qpecgen.helpers.create_name">[docs]</a><span class="k">def</span> <span class="nf">create_name</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create a list of names.</span>
+
+<span class="sd">    If the prefix is &quot;a&quot; and size is 2, the created name list will be [&quot;a0&quot;, &quot;a1&quot;].</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      prefix: Prefix of name.</span>
+<span class="sd">      size: Size of names.</span>
+<span class="sd">      start: If given, the fiest id will be set to it. (Default: 0)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      List of names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">start</span><span class="o">+</span><span class="n">size</span><span class="p">)]</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Trish Gillett-Kawamoto.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

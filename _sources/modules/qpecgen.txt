@@ -1,0 +1,52 @@
+qpecgen package
+===============
+
+.. automodule:: qpecgen
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Submodules
+----------
+
+qpecgen.avi module
+------------------
+
+.. automodule:: qpecgen.avi
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+qpecgen.base module
+-------------------
+
+.. automodule:: qpecgen.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+qpecgen.box module
+------------------
+
+.. automodule:: qpecgen.box
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+qpecgen.helpers module
+----------------------
+
+.. automodule:: qpecgen.helpers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+qpecgen.special module
+----------------------
+
+.. automodule:: qpecgen.special
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
