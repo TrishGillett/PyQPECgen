@@ -54,6 +54,11 @@ project = u'PyQPECgen'
 copyright = u'2016, Trish Gillett-Kawamoto'
 author = u'Trish Gillett-Kawamoto'
 
+rst_prolog = """
+:github_url: https://github.com/discardthree/PyQPECgen
+"""
+
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
