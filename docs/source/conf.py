@@ -55,7 +55,7 @@ copyright = u'2016, Trish Gillett-Kawamoto'
 author = u'Trish Gillett-Kawamoto'
 
 rst_prolog = """
-:github_url: https://github.com/discardthree/PyQPECgen
+:github_url: https://github.com/TrishGillett/PyQPECgen
 """
 
 
@@ -64,7 +64,7 @@ rst_prolog = """
 # built documents.
 #
 # The short X.Y version.
-version = u'0.1.0'
+version = u'0.1'
 # The full version, including alpha/beta/rc tags.
 release = u'0.1.0'
 
