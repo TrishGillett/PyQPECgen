@@ -38,6 +38,10 @@ setup(
     author_email="discardthree@gmail.com",
     url="https://github.com/TrishGillett/PyQPECgen",
     packages=find_packages(exclude=["tests"]),
+    include_package_data=True,
+    setup_requires=[
+        "setuptools_scm"
+    ],
     install_requires=load_requires_from_file("requirements.txt"),
     classifiers=[
         "Development Status :: 3 - Alpha",
