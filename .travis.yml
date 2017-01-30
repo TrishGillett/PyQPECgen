@@ -7,11 +7,15 @@ addons:
       - gcc
       - libblas-dev
       - liblapack-dev
+      - libatlas-dev
       - gfortran
-install:
-  - pip install --upgrade pip==8.1.1
-  - pip install -U pip-tools
-  - pip-compile
-  - pip install -r requirements.txt
+      - python-numpy
+      - python-scipy
+      - python-cvxopt
+      - aria2
+before_install:
+  - aria2c -x 10 -k 1M http://faculty.cse.tamu.edu/davis/SuiteSparse/SuiteSparse-4.5.3.tar.gz
+  - tar -xf SuiteSparse-4.5.3.tar.gz
+  - export CVXOPT_SUITESPARSE_SRC_DIR=$(pwd)/SuiteSparse
 script:
   - python setup.py test

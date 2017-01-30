@@ -11,7 +11,7 @@
 """
 from setuptools import setup, find_packages
 
-def _load_requires_from_file(filepath):
+def load_requires_from_file(filepath):
     """ Read a package list from a given file path.
 
     Args:
@@ -36,9 +36,13 @@ setup(
         "Houyuan Jiang, Daniel Ralph, 1997."),
     author="Trish Gillett-Kawamoto",
     author_email="discardthree@gmail.com",
-    url="https://github.com/discardthree/PyQPECgen",
+    url="https://github.com/TrishGillett/PyQPECgen",
     packages=find_packages(exclude=["tests"]),
-    install_requires=_load_requires_from_file("requirements.txt"),
+    include_package_data=True,
+    setup_requires=[
+        "setuptools_scm"
+    ],
+    install_requires=load_requires_from_file("requirements.txt"),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
