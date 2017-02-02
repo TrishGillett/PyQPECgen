@@ -1,7 +1,7 @@
 QPECgen
 ==========
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
-[![Build Status](https://travis-ci.org/discardthree/PyQPECgen.svg?branch=master)](https://travis-ci.org/discardthree/PyQPECgen)
+[![Build Status](https://travis-ci.org/TrishGillett/PyQPECgen.svg?branch=master)](https://travis-ci.org/TrishGillett/PyQPECgen)
 [![PyPi](https://img.shields.io/badge/pypi-0.1.0-brightgreen.svg)](https://pypi.python.org/pypi/pyqpecgen/)
 
 Houyuan Jiang, Daniel Ralph, copyright 1997.
